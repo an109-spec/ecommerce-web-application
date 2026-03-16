@@ -1,20 +1,25 @@
 {% extends "seller/layout_seller.html" %}
 
+{% block styles %}
+<link rel="stylesheet"
+href="{{ url_for('static', filename='css/seller_promotion.css') }}">
+{% endblock %}
+
 {% block seller_content %}
 
 <h2>Voucher</h2>
+{% if request.args.get("deleted") == "1" %}
+<p class="status status--active">Xóa voucher thành công</p>
+{% endif %}
 
 <a class="btn btn--primary"
 href="/seller/vouchers/create">
-
 + Tạo voucher
-
 </a>
 
 <table class="table">
 
 <tr>
-
 <th>CODE</th>
 <th>DISCOUNT</th>
 <th>MIN ORDER</th>
@@ -22,33 +27,34 @@ href="/seller/vouchers/create">
 <th>USED</th>
 <th>STATUS</th>
 <th>ACTION</th>
-
 </tr>
 
 {% for v in vouchers %}
 
 <tr>
-
 <td>{{ v.code }}</td>
 
 <td>
-
 {% if v.discount_type == "percent" %}
 {{ v.discount_value }}%
 {% else %}
 {{ "{:,.0f}".format(v.discount_value) }}đ
 {% endif %}
-
 </td>
 
-<td>{{ v.min_order_value }}</td>
-
+<td>{{ "{:,.0f}".format(v.min_order_value) }}đ</td>
 <td>
+<div>
+{{ v.start_time.strftime("%d/%m %H:%M:%S") }}
+</div>
 
-{{ v.start_time.strftime("%d/%m") }}
-→
-{{ v.end_time.strftime("%d/%m") }}
+<div>
+{{ v.end_time.strftime("%d/%m %H:%M:%S") }}
+</div>
 
+<div class="countdown"
+data-end="{{ v.end_time.timestamp() }}">
+</div>
 </td>
 
 <td>
@@ -67,40 +73,60 @@ style="width:{{ percent }}%">
 
 </td>
 
+
 <td>
 
-{% if not v.is_active %}
-<span class="status status--off">Off</span>
+{% if v.end_time < now %}
+<span class="status status--expired">Expired</span>
 
-{% elif v.end_time < now %}
-<span class="status status--off">Expired</span>
-
-{% elif v.start_time > now %}
-<span class="status status--pending">Upcoming</span>
+{% elif v.is_active %}
+<span class="status status--active">Active</span>
 
 {% else %}
-<span class="status status--active">Active</span>
+<span class="status status--off">Off</span>
 
 {% endif %}
 
 </td>
 
+
 <td>
+
+{% if v.end_time < now %}
+
+<a class="btn-action btn-view"
+href="/seller/vouchers/{{ v.id }}/view">
+View
+</a>
+
+<a class="btn-action btn-delete"
+href="/seller/vouchers/{{ v.id }}/delete"
+onclick="return confirm('Bạn có chắc muốn xóa voucher này?')">
+Delete
+</a>
+
+{% else %}
 
 <a class="btn-action btn-edit"
 href="/seller/vouchers/{{ v.id }}/edit">
 Edit
 </a>
 
-<a class="btn-action btn-edit"
-href="/seller/vouchers/{{ v.id }}/toggle">
-On/Off
+<a class="btn-action {% if v.is_active %}btn-off{% else %}btn-on{% endif %}"
+href="/seller/vouchers/{{ v.id }}/toggle"
+onclick="return confirm('Bạn có chắc muốn {{ 'OFF' if v.is_active else 'ON' }} voucher này?')">
+
+{{ 'Off' if v.is_active else 'On' }}
+
 </a>
 
 <a class="btn-action btn-delete"
-href="/seller/vouchers/{{ v.id }}/delete">
+href="/seller/vouchers/{{ v.id }}/delete"
+onclick="return confirm('Bạn có chắc muốn xóa voucher này?')">
 Delete
 </a>
+
+{% endif %}
 
 </td>
 
@@ -108,5 +134,8 @@ Delete
 
 {% endfor %}
 </table>
+{% endblock %}
 
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/promotion/flash_sale_ui.js') }}"></script>
 {% endblock %}

@@ -384,3 +384,41 @@ margin-top:4px;
 font-weight:600;
 
 }
+
+/* countdown */
+.countdown{
+font-size:12px;
+color:#ff6a00;
+font-weight:600;
+margin-top:4px;
+}
+
+/* expired status */
+.status--expired{
+color:#374151;
+background:#f3f4f6;
+border:1px solid #d1d5db;
+}
+.status--expired::before{
+background:#6b7280;
+}
+
+/* action buttons */
+.btn-view{
+background:#f3f4f6;
+color:#374151;
+}
+
+.btn-on{
+background:#ecfdf5;
+color:#16a34a;
+}
+
+.btn-off{
+background:#fff7ed;
+color:#ea580c;
+}
+
+.btn-view:hover{background:#e5e7eb;}
+.btn-on:hover{background:#dcfce7;}
+.btn-off:hover{background:#ffedd5;}

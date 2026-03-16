@@ -28,7 +28,7 @@ const end = document.getElementById("end_time").value
 let variants = []
 document.querySelectorAll("input[name='variant_ids[]']:checked")
 .forEach(el => variants.push(el.value))
-
+try {
 const res = await fetch("/seller/api/voucher/create",{
 method:"POST",
 headers:{
@@ -54,6 +54,9 @@ alert("Tạo voucher thành công")
 window.location="/seller/vouchers"
 }else{
 alert(data.message || "Có lỗi xảy ra")
+}
+} catch (error) {
+alert("Không thể tạo voucher, vui lòng thử lại")
 }
 }
 

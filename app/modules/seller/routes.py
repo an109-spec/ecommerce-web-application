@@ -884,9 +884,16 @@ def voucher_page():
 @seller_bp.route("/vouchers/create")
 @seller_required
 def voucher_create_page():
+    user = get_current_user()
+    shop = get_current_shop(user)
+
+    products = Product.query.filter_by(
+        shop_id=shop.id
+    ).all()
 
     return render_template(
-        "seller/promotion/voucher_create.html"
+        "seller/promotion/voucher_create.html",
+        products=products
     )
 
 @seller_bp.route("/vouchers/create", methods=["POST"])
@@ -909,6 +916,36 @@ def voucher_create():
     )
     return redirect("/seller/vouchers")
 
+@seller_bp.route("/api/voucher/create", methods=["POST"])
+@seller_required
+def voucher_create_api():
+
+    data = request.get_json() or {}
+
+    user = get_current_user()
+    shop = get_current_shop(user)
+
+    try:
+        VoucherService.create_voucher(
+            shop_id=shop.id,
+            name=data["name"],
+            code=data["code"],
+            discount_type=data["discount_type"],
+            discount_value=int(data["discount_value"]),
+            min_order_value=int(data["min_order_value"]),
+            usage_limit=int(data["usage_limit"]),
+            start_time=datetime.fromisoformat(data["start_time"]),
+            end_time=datetime.fromisoformat(data["end_time"]),
+        )
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 400
+
+    return jsonify({"success": True})
+
+
 @seller_bp.route("/vouchers/<int:voucher_id>/edit")
 @seller_required
 def voucher_edit_page(voucher_id):
@@ -917,7 +954,21 @@ def voucher_edit_page(voucher_id):
 
     return render_template(
         "seller/promotion/voucher_edit.html",
-        voucher=voucher
+        voucher=voucher,
+        view_only=False
+    )
+
+
+@seller_bp.route("/vouchers/<int:voucher_id>/view")
+@seller_required
+def voucher_view_page(voucher_id):
+
+    voucher = Voucher.query.get_or_404(voucher_id)
+
+    return render_template(
+        "seller/promotion/voucher_edit.html",
+        voucher=voucher,
+        view_only=True
     )
 
 @seller_bp.route("/vouchers/<int:voucher_id>/edit", methods=["POST"])
@@ -941,7 +992,7 @@ def voucher_update(voucher_id):
 @seller_required
 def voucher_delete(voucher_id):
     VoucherService.delete_voucher(voucher_id)
-    return redirect("/seller/vouchers")
+    return redirect("/seller/vouchers?deleted=1")
 
 @seller_bp.route("/vouchers/<int:voucher_id>/toggle")
 @seller_required

@@ -1,22 +1,58 @@
 {% extends "seller/layout_seller.html" %}
 
+{% block styles %}
+<link rel="stylesheet"
+href="{{ url_for('static', filename='css/seller_promotion.css') }}">
+{% endblock %}
+
 {% block seller_content %}
 
-<h2>Edit Voucher</h2>
+<h2>
+{% if view_only %}
+View Voucher
+{% else %}
+Edit Voucher
+{% endif %}
+</h2>
 
 <form method="POST">
 
 <div class="promotion-box">
 
 <label>Tên chương trình</label>
-<input name="name" value="{{ voucher.name }}">
+<input
+name="name"
+id="name"
+value="{{ voucher.name }}"
+{% if view_only %}readonly{% endif %}
+>
+
 
 <label>Voucher Code</label>
-<input name="code" value="{{ voucher.code }}">
+
+<div class="code-row">
+<input
+name="code"
+id="code"
+value="{{ voucher.code }}"
+{% if view_only %}readonly{% endif %}
+>
+
+{% if not view_only %}
+<button type="button" onclick="generateCode()">
+Generate Random
+</button>
+{% endif %}
+</div>
+
 
 <label>Loại giảm</label>
 
-<select name="discount_type">
+<select
+name="discount_type"
+id="discount_type"
+{% if view_only %}disabled{% endif %}
+>
 
 <option value="percent"
 {% if voucher.discount_type=="percent" %}selected{% endif %}>
@@ -30,54 +66,127 @@ Tiền
 
 </select>
 
+
 <label>Giảm</label>
 
 <input
 type="number"
 name="discount_value"
+id="discount_value"
 value="{{ voucher.discount_value }}"
+{% if view_only %}readonly{% endif %}
 >
+
+<div id="discount_text" class="money-text"></div>
+
 
 <label>Đơn tối thiểu</label>
 
 <input
 type="number"
 name="min_order_value"
+id="min_order_value"
 value="{{ voucher.min_order_value }}"
+{% if view_only %}readonly{% endif %}
 >
 
-<label>Số lượt dùng</label>
+<div id="min_text" class="money-text"></div>
+
+
+<label>Số lượt sử dụng</label>
 
 <input
 type="number"
 name="usage_limit"
+id="usage_limit"
 value="{{ voucher.usage_limit }}"
+{% if view_only %}readonly{% endif %}
 >
+
 
 <label>Bắt đầu</label>
 
 <input
 type="datetime-local"
 name="start_time"
+id="start_time"
 value="{{ voucher.start_time.strftime('%Y-%m-%dT%H:%M') }}"
+{% if view_only %}readonly{% endif %}
 >
+
 
 <label>Kết thúc</label>
 
 <input
 type="datetime-local"
 name="end_time"
+id="end_time"
 value="{{ voucher.end_time.strftime('%Y-%m-%dT%H:%M') }}"
+{% if view_only %}readonly{% endif %}
 >
+
+
+<label>Chọn sản phẩm</label>
+<div class="product-grid">
+
+{% for p in products %}
+
+<div class="product-box collapsible">
+
+<input
+type="checkbox"
+class="productCheck"
+id="product-{{ p.id }}"
+value="{{ p.id }}"
+{% if view_only %}disabled{% endif %}
+>
+
+<label for="product-{{ p.id }}">
+<strong>{{ p.name }}</strong>
+</label>
+
+<div id="variantBox-{{ p.id }}" class="variant-box"></div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+
+{% if not view_only %}
+<label>
+<input type="checkbox" id="selectAllVariants">
+Chọn tất cả
+</label>
+{% endif %}
 
 <br><br>
 
+{% if view_only %}
+
+<a class="btn btn--primary" href="/seller/vouchers">
+Quay lại
+</a>
+
+{% else %}
+
 <button class="btn btn--primary">
-Save
+Save Voucher
 </button>
+
+{% endif %}
 
 </div>
 
 </form>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="{{ url_for('static', filename='js/promotion/promotion_common.js') }}"></script>
+<script src="{{ url_for('static', filename='js/promotion/voucher.js') }}"></script>
 
 {% endblock %}

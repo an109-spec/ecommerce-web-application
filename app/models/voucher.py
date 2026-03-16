@@ -26,9 +26,9 @@ class Voucher(BaseModel):
 
     used_count = db.Column(db.Integer, default=0)
 
-    start_time = db.Column(db.DateTime)
+    start_time = db.Column(db.DateTime(timezone=True), nullable=False)
 
-    end_time = db.Column(db.DateTime)
+    end_time =db.Column(db.DateTime(timezone=True), nullable=False)
 
     is_active = db.Column(db.Boolean, default=True)
 
