@@ -59,9 +59,23 @@ window.createFlashSale = async function(){
 
   const start = document.querySelector("[name='start_time']").value
   const end = document.querySelector("[name='end_time']").value
+  if(!percent || !start || !end || Number.isNaN(stock)){
+    alert("Vui lòng nhập đầy đủ thông tin trước khi tạo Flash Sale")
+    return
+  }
 
   if(Number.isNaN(stock) || stock <= 0){
     alert("Vui lòng nhập số lượng Flash Sale hợp lệ")
+    return
+  }
+
+  if(Number(percent) <= 0 || Number(percent) >= 100){
+    alert("Phần trăm giảm phải lớn hơn 0 và nhỏ hơn 100")
+    return
+  }
+
+  if(new Date(start) >= new Date(end)){
+    alert("Thời gian kết thúc phải lớn hơn thời gian bắt đầu")
     return
   }
 

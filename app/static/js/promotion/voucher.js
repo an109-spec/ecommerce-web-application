@@ -28,6 +28,28 @@ const end = document.getElementById("end_time").value
 let variants = []
 document.querySelectorAll("input[name='variant_ids[]']:checked")
 .forEach(el => variants.push(el.value))
+
+if(!name || !code || !type || !value || !usage || !min || !start || !end){
+alert("Vui lòng nhập đầy đủ thông tin trước khi tạo voucher")
+return
+}
+
+if(Number(value) <= 0 || Number(usage) <= 0 || Number(min) < 0){
+alert("Vui lòng nhập thông tin hợp lệ trước khi tạo voucher")
+return
+}
+
+if(new Date(start) >= new Date(end)){
+alert("Thời gian kết thúc phải lớn hơn thời gian bắt đầu")
+return
+}
+
+if(variants.length === 0){
+alert("Vui lòng chọn ít nhất 1 sản phẩm/phân loại")
+return
+}
+
+
 try {
 const res = await fetch("/seller/api/voucher/create",{
 method:"POST",

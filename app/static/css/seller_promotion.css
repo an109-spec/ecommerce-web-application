@@ -243,7 +243,9 @@ margin-bottom:10px;
 
 .select-all{
 margin-top:10px;
-display:block;
+display:inline-flex;
+align-items:center;
+gap:6px;
 }
 
 .flash-price-panel{
@@ -318,8 +320,13 @@ font-weight:600;
 color:#555;
 margin-top:6px;
 }
-
-.promotion-box input,
+.promotion-box input[type="checkbox"]{
+width:16px;
+height:16px;
+margin:0;
+accent-color:#ff6a00;
+}
+.promotion-box input:not([type="checkbox"]),
 .promotion-box select{
 
 width:100%;

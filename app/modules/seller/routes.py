@@ -30,7 +30,6 @@ from app.models.product import ProductImage
 from app.modules.promotion.service import VoucherService, PromotionService
 from app.utils.time import utcnow
 from app.models.voucher import Voucher
-from datetime import datetime
 
 now = utcnow()
 def get_current_user():
@@ -141,6 +140,59 @@ def register_shop():
         )
 
     return redirect(url_for("seller.setup_shipping"))
+
+@seller_bp.route("/api/shop", methods=["PUT"])
+@seller_required
+def update_shop_api():
+
+    user = get_current_user()
+    shop = get_current_shop(user)
+
+    if not shop:
+        return jsonify({"success": False}), 404
+
+    name = request.form.get("name")
+    email = request.form.get("email")
+    phone = request.form.get("phone")
+    address = request.form.get("address")
+
+    logo = request.files.get("logo")
+
+    try:
+
+        dto = CreateShopDTO(
+            name=name,
+            pickup_address=address,
+            email=email,
+            phone=phone
+        )
+
+        SellerService.update_shop(shop, dto)
+
+        if logo and logo.filename:
+
+            filename = secure_filename(logo.filename)
+            unique = str(uuid.uuid4()) + "_" + filename
+
+            upload_folder = os.path.join(
+                current_app.root_path,
+                "static/uploads/shops"
+            )
+
+            os.makedirs(upload_folder, exist_ok=True)
+
+            path = os.path.join(upload_folder, unique)
+
+            logo.save(path)
+
+            shop.logo = f"/static/uploads/shops/{unique}"
+
+            db.session.commit()
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+    return jsonify({"success": True})
 
 @seller_bp.route("/setup_shipping", methods=["GET", "POST"])
 def setup_shipping():
@@ -949,12 +1001,15 @@ def voucher_create_api():
 @seller_bp.route("/vouchers/<int:voucher_id>/edit")
 @seller_required
 def voucher_edit_page(voucher_id):
-
+    user = get_current_user()
+    shop = get_current_shop(user)
     voucher = Voucher.query.get_or_404(voucher_id)
+    products = Product.query.filter_by(shop_id=shop.id).all()
 
     return render_template(
         "seller/promotion/voucher_edit.html",
         voucher=voucher,
+        products=products,
         view_only=False
     )
 
@@ -962,12 +1017,14 @@ def voucher_edit_page(voucher_id):
 @seller_bp.route("/vouchers/<int:voucher_id>/view")
 @seller_required
 def voucher_view_page(voucher_id):
-
+    user = get_current_user()
+    shop = get_current_shop(user)
     voucher = Voucher.query.get_or_404(voucher_id)
-
+    products = Product.query.filter_by(shop_id=shop.id).all()
     return render_template(
         "seller/promotion/voucher_edit.html",
         voucher=voucher,
+        products=products,
         view_only=True
     )
 

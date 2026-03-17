@@ -1,24 +1,258 @@
 {% extends "seller/layout_seller.html" %}
 
 {% block seller_content %}
+
 <h2>Cài đặt shop</h2>
+
 <form id="shopForm" class="seller-form">
-  <label>Tên shop</label>
-  <input name="name" value="{{ shop.name }}">
-  <label>Logo URL</label>
-  <input name="logo" value="{{ shop.logo or '' }}">
-  <label>Mô tả</label>
-  <textarea name="description">{{ shop.description or '' }}</textarea>
-  <label>Địa chỉ</label>
-  <input name="address" value="{{ shop.pickup_address or '' }}">
-  <button class="btn btn--primary" type="button" onclick="saveShop()">Lưu thay đổi</button>
+
+<!-- LOGO SHOP -->
+
+<div class="settings-row">
+
+<label>Logo shop</label>
+
+<div class="logo-upload">
+
+<div class="logo-preview">
+<img id="logoPreview"
+src="{{ shop.logo if shop.logo else url_for('static', filename='img/shop-default.png') }}">
+</div>
+
+<input type="file" id="logoInput" accept="image/*">
+
+</div>
+
+</div>
+
+<!-- SHOP NAME -->
+
+<div class="settings-row">
+
+<label>Tên shop</label>
+
+<div class="edit-row">
+
+<input name="name"
+id="shopName"
+value="{{ shop.name }}"
+disabled>
+
+<button type="button"
+class="btn-edit"
+onclick="enableEdit('shopName')">
+Chỉnh sửa </button>
+
+</div>
+
+</div>
+
+<!-- PHONE -->
+
+<div class="settings-row">
+
+<label>Số điện thoại</label>
+
+<div class="edit-row">
+
+<input name="phone"
+id="shopPhone"
+value="{{ shop.contact_phone }}"
+disabled>
+
+<button type="button"
+class="btn-edit"
+onclick="enableEdit('shopPhone')">
+Chỉnh sửa </button>
+
+</div>
+
+</div>
+
+<!-- EMAIL -->
+
+<div class="settings-row">
+
+<label>Email shop</label>
+
+<div class="edit-row">
+
+<input name="email"
+id="shopEmail"
+value="{{ shop.contact_email }}"
+disabled>
+
+<button type="button"
+class="btn-edit"
+onclick="enableEdit('shopEmail')">
+Chỉnh sửa </button>
+
+</div>
+
+</div>
+
+<!-- DESCRIPTION -->
+
+<div class="settings-row">
+
+<label>Mô tả</label>
+
+<textarea name="description">{{ shop.description or '' }}</textarea>
+
+</div>
+
+<!-- ADDRESS -->
+
+<div class="settings-row">
+
+<label>Địa chỉ</label>
+
+<div class="address-grid">
+<div id="addressPreview"
+style="margin-top:8px;color:#666;font-size:13px">
+{{ shop.pickup_address or "" }}
+</div>
+<select id="citySelect">
+<option value="">Tỉnh / Thành phố</option>
+</select>
+
+<select id="districtSelect">
+<option value="">Quận / Huyện</option>
+</select>
+
+<select id="wardSelect">
+<option value="">Phường / Xã</option>
+</select>
+
+<input id="detailAddress"
+placeholder="Số nhà / đường">
+
+</div>
+
+</div>
+
+<input type="hidden"
+name="address"
+id="addressFull"
+value="{{ shop.pickup_address or '' }}">
+
+<button
+class="btn btn--primary"
+type="button"
+onclick="saveShop()">
+Lưu thay đổi </button>
+
 </form>
+
 <script>
-function saveShop(){
-  const f = document.getElementById('shopForm');
-  fetch('/seller/api/shop',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    name:f.name.value,logo:f.logo.value,description:f.description.value,address:f.address.value
-  })}).then(()=>location.reload());
+
+/* ENABLE EDIT */
+
+function enableEdit(id){
+document.getElementById(id).disabled=false
 }
+
+
+/* LOGO PREVIEW (chỉ preview, backend chưa hỗ trợ upload) */
+
+const logoInput=document.getElementById("logoInput")
+const logoPreview=document.getElementById("logoPreview")
+
+if(logoInput){
+
+logoInput.addEventListener("change",function(){
+
+const file=this.files[0]
+
+if(file){
+logoPreview.src=URL.createObjectURL(file)
+}
+
+})
+
+}
+
+
+/* SAVE SHOP */
+
+function saveShop(){
+
+const f=document.getElementById("shopForm")
+
+const detail=document.getElementById("detailAddress").value.trim()
+
+const city=document.getElementById("citySelect")
+const district=document.getElementById("districtSelect")
+const ward=document.getElementById("wardSelect")
+
+const cityText=city.options[city.selectedIndex]?.text || ""
+const districtText=district.options[district.selectedIndex]?.text || ""
+const wardText=ward.options[ward.selectedIndex]?.text || ""
+
+const parts=[detail,wardText,districtText,cityText].filter(Boolean)
+
+const fullAddress=parts.join(", ")
+
+const formData=new FormData()
+
+formData.append("name",f.name.value)
+formData.append("email",f.email.value)
+formData.append("phone",f.phone.value)
+formData.append("description",f.description.value)
+formData.append("address",fullAddress)
+
+const logo=document.getElementById("logoInput").files[0]
+
+if(logo){
+formData.append("logo",logo)
+}
+
+fetch("/seller/api/shop",{
+method:"PUT",
+body:formData
+})
+.then(res=>res.json())
+.then(data=>{
+
+if(data.success){
+
+alert("Cập nhật shop thành công")
+
+}else{
+
+alert(data.message || "Cập nhật thất bại")
+
+}
+
+})
+}
+
+function updateAddressPreview(){
+
+const detail=document.getElementById("detailAddress").value
+
+const city=document.getElementById("citySelect")
+const district=document.getElementById("districtSelect")
+const ward=document.getElementById("wardSelect")
+
+const cityText=city.options[city.selectedIndex]?.text || ""
+const districtText=district.options[district.selectedIndex]?.text || ""
+const wardText=ward.options[ward.selectedIndex]?.text || ""
+
+const parts=[detail,wardText,districtText,cityText].filter(Boolean)
+
+document.getElementById("addressPreview").innerText=
+parts.join(", ")
+
+}
+
+document.querySelectorAll(
+"#citySelect,#districtSelect,#wardSelect,#detailAddress"
+).forEach(el=>{
+el.addEventListener("change",updateAddressPreview)
+el.addEventListener("input",updateAddressPreview)
+})
+
 </script>
+
 {% endblock %}

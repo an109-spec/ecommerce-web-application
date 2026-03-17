@@ -503,15 +503,6 @@ color:#ee4d2d;
 font-weight:bold;
 }
 
-
-/* form */
-
-.seller-form{
-display:flex;
-flex-direction:column;
-gap:20px;
-}
-
 .form-group{
 display:flex;
 flex-direction:column;
@@ -607,4 +598,62 @@ display:grid;
 grid-template-columns:150px 1fr;
 gap:12px;
 align-items:center;
+}
+
+
+/* SHOP SETTINGS */
+
+.settings-row{
+display:grid;
+grid-template-columns:150px 1fr;
+gap:10px;
+align-items:center;
+margin-bottom:20px;
+}
+
+.logo-upload{
+display:flex;
+align-items:center;
+gap:15px;
+}
+
+.logo-preview img{
+width:70px;
+height:70px;
+border-radius:50%;
+object-fit:cover;
+border:1px solid #ddd;
+}
+
+.edit-row{
+display:flex;
+gap:10px;
+align-items:center;
+}
+
+.btn-edit{
+border:1px solid #ee4d2d;
+background:white;
+color:#ee4d2d;
+padding:6px 12px;
+border-radius:4px;
+cursor:pointer;
+}
+
+.btn-edit:hover{
+background:#fff3ef;
+}
+
+.address-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:10px;
+}
+
+#addressPreview{
+grid-column:1 / -1;
+}
+
+#detailAddress{
+grid-column:1 / -1;
 }
