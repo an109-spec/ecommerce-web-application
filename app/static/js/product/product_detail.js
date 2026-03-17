@@ -18,6 +18,13 @@
     const rounded = Math.round(Number(rating || 0));
     return '★'.repeat(Math.max(0, rounded)) + '☆'.repeat(Math.max(0, 5 - rounded));
   }
+  function normalizeAssetUrl(src, fallback = '/static/images/no-image.png') {
+    if (!src) return fallback;
+    if (src.startsWith('http://') || src.startsWith('https://')) return src;
+    if (src.startsWith('/')) return src;
+    if (src.startsWith('static/')) return `/${src}`;
+    return `/static/${src}`;
+  }
 
   function renderOptionGroup(title, values) {
     const items = (values || []).map((value) => `<button type="button" class="variant-chip">${value}</button>`).join('');
@@ -27,17 +34,12 @@
 
   function renderProduct(item) {
     const shop = item.shop || {};
-    const images = (item.images && item.images.length
-  ? item.images
-  : [item.thumbnail || '']
-)
-.filter(Boolean)
-.map(src => src.startsWith('http') ? src : `/${src}`);
+    const images = (item.images && item.images.length ? item.images : [item.thumbnail || ''])
+      .filter(Boolean)
+      .map((src) => normalizeAssetUrl(src));
     const mainImage = images[0] || '/static/images/no-image.png';
     const currentPrice = item.flash_price != null ? item.flash_price : item.original_price;
-    const shopLogo = shop.logo
-  ? (shop.logo.startsWith('http') ? shop.logo : `/static/${shop.logo}`)
-  : '/static/images/no-image.png'
+    const shopLogo = normalizeAssetUrl(shop.logo);
 
     detailEl.innerHTML = `
       <article class="product-detail">
@@ -144,9 +146,7 @@
 
 function renderRelated(items) {
   relatedEl.innerHTML = (items || []).map((item) => {
-    const img = item.image
-      ? (item.image.startsWith('http') ? item.image : `/static/${item.image}`)
-      : '/static/images/no-image.png';
+    const img = normalizeAssetUrl(item.image || item.thumbnail);
 
     return `
       <a class="product-card" href="/shop/${item.id}">

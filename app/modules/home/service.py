@@ -6,8 +6,19 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.models import Category, FlashSale, OrderItem, Product, ProductVariant
 from app.models import Review
+from app.core.enums.product_status import ProductStatus
 
 class HomeService:
+    @staticmethod
+    def _normalize_asset_url(src: str | None, fallback: str = "/static/images/no-image.png") -> str:
+        if not src:
+            return fallback
+        if src.startswith(("http://", "https://", "/")):
+            return src
+        if src.startswith("static/"):
+            return f"/{src}"
+        return f"/static/{src}"
+    
     @staticmethod
     def _to_float(value: Decimal | None) -> float:
         if value is None:
@@ -22,11 +33,7 @@ class HomeService:
         sale_price: Decimal | None = None,
     ) -> dict:
 
-        image_url = (
-            f"/static/{product.thumbnail}"
-            if product.thumbnail
-            else "https://via.placeholder.com/320x320?text=Shopee+Mini"
-        )
+        image_url = HomeService._normalize_asset_url(product.thumbnail)
 
         variants = product.variants
         price = min(v.price for v in variants) if variants else 0
@@ -56,9 +63,9 @@ class HomeService:
                 "id": i,
                 "name": f"Sản phẩm gợi ý {i}",
                 "price": 199000 + i * 5000,
-                "rating": 4.6,
-                "sold": 120 + i * 3,
-                "image": "https://via.placeholder.com/320x320?text=Shopee+Mini",
+                "rating": 0.0,
+                "sold": 0,
+                "image": "/static/images/no-image.png",
                 "discount_percent": 15 if i % 4 == 0 else None,
                 "sale_price": int((199000 + i * 5000) * 0.85) if i % 4 == 0 else None,
                 "product_url": f"/shop/{i}",
@@ -101,11 +108,11 @@ class HomeService:
                 {"name": "Mẹ & Bé"}, {"name": "Nhà cửa"}, {"name": "Sách"}, {"name": "Thể thao"},
             ],
             "flash_sale": {
-                "ends_at_iso": datetime.now(timezone.utc).isoformat(),
-                "items": sample_products[:4],
+                "ends_at_iso": None,
+                "items": [],
             },
-            "top_search_items": sample_products[:4],
-            "recommended_items": sample_products,
+            "top_search_items": [],
+            "recommended_items": [],
             "promotion_banners": [
                 {"title": "Sale Laptop 30%", "subtitle": "Hiệu năng cao giá tốt", "link": "/shop"},
                 {"title": "Phụ kiện gaming", "subtitle": "Combo gear siêu hời", "link": "/shop"},
@@ -133,6 +140,7 @@ class HomeService:
 
             top_rows = (
                 Product.query
+                .filter(Product.status == ProductStatus.ACTIVE)
                 .outerjoin(sold_subquery, Product.id == sold_subquery.c.product_id)
                 .add_columns(func.coalesce(sold_subquery.c.sold, 0).label("sold"))
                 .order_by(func.coalesce(sold_subquery.c.sold, 0).desc(), Product.created_at.desc())
@@ -188,10 +196,8 @@ class HomeService:
 
             
             base["flash_sale"]["items"] = flash_cards
-            if not flash_cards:
-                base["flash_sale"]["items"] = []
-                if flash_end:
-                    base["flash_sale"]["ends_at_iso"] = flash_end.replace(tzinfo=timezone.utc).isoformat()
+            if flash_end:
+                base["flash_sale"]["ends_at_iso"] = flash_end.replace(tzinfo=timezone.utc).isoformat()
             if base.get("recommended_items") and flash_map_by_product_id:
                 for item in base["recommended_items"]:
                     flash_info = flash_map_by_product_id.get(item.get("id"))

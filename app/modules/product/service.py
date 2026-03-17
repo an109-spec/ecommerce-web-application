@@ -14,6 +14,16 @@ from .search import full_text_query
 
 class ProductService:
     @staticmethod
+    def _normalize_asset_url(src: str | None, fallback: str = "/static/images/no-image.png") -> str:
+        if not src:
+            return fallback
+        if src.startswith(("http://", "https://", "/")):
+            return src
+        if src.startswith("static/"):
+            return f"/{src}"
+        return f"/static/{src}"
+
+    @staticmethod
     def list_products(*, keyword=None, min_price=None, max_price=None, category=None, sort=None, page=1, per_page=10):
         query = Product.query.filter(Product.status == ProductStatus.ACTIVE)
         query = full_text_query(query, keyword)
@@ -132,8 +142,22 @@ class ProductService:
             flash_price = float(active_sale.variant.price * (100 - discount_percent) / 100)
             flash_ends_at = active_sale.end_time.isoformat()
 
-        size_options = sorted({attr.value for variant in variants for attr in variant.variant_attributes if attr.name.lower() == "size"})
-        color_options = sorted({attr.value for variant in variants for attr in variant.variant_attributes if attr.name.lower() == "color"})
+        size_options = sorted(
+            {
+                attr.value
+                for variant in variants
+                for attr in variant.variant_attributes
+                if (attr.name or "").strip().lower() == "size"
+            }
+        )
+        color_options = sorted(
+            {
+                attr.value
+                for variant in variants
+                for attr in variant.variant_attributes
+                if (attr.name or "").strip().lower() == "color"
+            }
+        )
 
         primary_category = product.product_categories[0].category.name if product.product_categories else None
         shop = Shop.query.get(product.shop_id) if product.shop_id else None
@@ -143,8 +167,9 @@ class ProductService:
             "id": product.id,
             "name": product.name,
             "description": product.description,
-            "thumbnail": product.thumbnail,
-            "images": [img.image_url for img in product.images] or ([product.thumbnail] if product.thumbnail else []),
+            "thumbnail": ProductService._normalize_asset_url(product.thumbnail),
+            "images": [ProductService._normalize_asset_url(img.image_url) for img in product.images]
+            or ([ProductService._normalize_asset_url(product.thumbnail)] if product.thumbnail else []),
             "rating": round(avg_rating, 1),
             "reviews_count": review_count,
             "original_price": float(original_price),
@@ -158,7 +183,7 @@ class ProductService:
             "shop": {
                 "id": shop.id if shop else None,
                 "name": shop.name if shop else "OneShop",
-                "logo": shop.logo if shop and shop.logo else "https://via.placeholder.com/80x80?text=Shop",
+                "logo": ProductService._normalize_asset_url(shop.logo if shop else None),
                 "rating": float(shop.rating) if shop and shop.rating is not None else 0.0,
                 "total_products": shop_total_products,
                 "followers": 0,
@@ -184,7 +209,8 @@ class ProductService:
                     "id": item.id,
                     "name": item.name,
                     "price": float(min(prices)) if prices else 0.0,
-                    "thumbnail": item.thumbnail,
+                    "thumbnail": ProductService._normalize_asset_url(item.thumbnail),
+                    "image": ProductService._normalize_asset_url(item.thumbnail),
                 }
             )
         return payload
