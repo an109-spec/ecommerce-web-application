@@ -18,8 +18,8 @@ def shop_page():
     return render_template("product/list.html")
 
 
-@product_bp.route("/shop/<int:id>", methods=["GET"])
-def shop_detail_page(id: int):
+@product_bp.route("/shop/<int:id>")
+def product_detail(id):
     return render_template("product/detail.html", product_id=id)
 
 

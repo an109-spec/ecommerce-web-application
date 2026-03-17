@@ -5,7 +5,10 @@ from .dto import ProductCreateDTO, ProductResponseDTO, ProductUpdateDTO, ReviewC
 from .filters import filter_by_category, filter_by_price, sort_products
 from app.models.product import Product, ProductImage
 from app.core.enums.product_status import ProductStatus
+from datetime import datetime, timezone
+from app.models.flash_sale import FlashSale
 from app.models.review import Review
+from app.models.shop import Shop
 from .search import full_text_query
 
 
@@ -93,9 +96,75 @@ class ProductService:
         if not product:
             raise NotFoundError("Không tìm thấy sản phẩm")
 
-        payload = ProductResponseDTO.from_model(product).to_dict()
-        payload["images"] = [img.image_url for img in product.images]
-        payload["reviews_count"] = len(product.reviews)
+        variants = product.variants or []
+        prices = [variant.price for variant in variants]
+        stocks = [variant.stock for variant in variants]
+
+        original_price = min(prices) if prices else 0
+        total_stock = int(sum(stocks)) if stocks else 0
+
+        review_count = len(product.reviews)
+        avg_rating = float(sum(review.rating for review in product.reviews) / review_count) if review_count else 0.0
+
+        now = datetime.now(timezone.utc)
+        active_sale = None
+        for variant in variants:
+            sale = (
+                FlashSale.query
+                .filter(
+                    FlashSale.variant_id == variant.id,
+                    FlashSale.is_active.is_(True),
+                    FlashSale.start_time <= now,
+                    FlashSale.end_time >= now,
+                )
+                .order_by(FlashSale.end_time.asc())
+                .first()
+            )
+            if sale:
+                active_sale = sale
+                break
+
+        flash_price = None
+        discount_percent = 0
+        flash_ends_at = None
+        if active_sale and active_sale.variant:
+            discount_percent = int(active_sale.discount_percent or 0)
+            flash_price = float(active_sale.variant.price * (100 - discount_percent) / 100)
+            flash_ends_at = active_sale.end_time.isoformat()
+
+        size_options = sorted({attr.value for variant in variants for attr in variant.variant_attributes if attr.name.lower() == "size"})
+        color_options = sorted({attr.value for variant in variants for attr in variant.variant_attributes if attr.name.lower() == "color"})
+
+        primary_category = product.product_categories[0].category.name if product.product_categories else None
+        shop = Shop.query.get(product.shop_id) if product.shop_id else None
+        shop_total_products = Product.query.filter(Product.shop_id == product.shop_id, Product.status == ProductStatus.ACTIVE).count() if product.shop_id else 0
+
+        payload = {
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "thumbnail": product.thumbnail,
+            "images": [img.image_url for img in product.images] or ([product.thumbnail] if product.thumbnail else []),
+            "rating": round(avg_rating, 1),
+            "reviews_count": review_count,
+            "original_price": float(original_price),
+            "flash_price": flash_price,
+            "discount_percent": discount_percent,
+            "flash_sale_ends_at": flash_ends_at,
+            "size_options": size_options,
+            "color_options": color_options,
+            "stock": total_stock,
+            "category": primary_category,
+            "shop": {
+                "id": shop.id if shop else None,
+                "name": shop.name if shop else "OneShop",
+                "logo": shop.logo if shop and shop.logo else "https://via.placeholder.com/80x80?text=Shop",
+                "rating": float(shop.rating) if shop and shop.rating is not None else 0.0,
+                "total_products": shop_total_products,
+                "followers": 0,
+                "url": f"/shop/search?shop_id={shop.id}" if shop else "/shop",
+            },
+        }
         return payload
 
     @staticmethod
@@ -105,11 +174,20 @@ class ProductService:
             raise NotFoundError("Không tìm thấy sản phẩm")
 
         related_query = Product.query.filter(Product.id != product_id, Product.status == ProductStatus.ACTIVE)
-        if product.category_id is not None:
-            related_query = related_query.filter(Product.category_id == product.category_id)
 
         related = related_query.order_by(Product.created_at.desc()).limit(8).all()
-        return [ProductResponseDTO.from_model(item).to_dict() for item in related]
+        payload = []
+        for item in related:
+            prices = [variant.price for variant in (item.variants or [])]
+            payload.append(
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "price": float(min(prices)) if prices else 0.0,
+                    "thumbnail": item.thumbnail,
+                }
+            )
+        return payload
 
     @staticmethod
     def add_review(product_id: int, user_id: int, data: ReviewCreateDTO):

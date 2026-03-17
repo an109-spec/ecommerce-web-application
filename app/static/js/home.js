@@ -21,3 +21,28 @@
 
   render();
 })();
+document.addEventListener("DOMContentLoaded", () => {
+  const el = document.getElementById("flash-countdown")
+  if (!el) return
+
+  const end = new Date(el.dataset.endsAt).getTime()
+
+  setInterval(() => {
+    const now = Date.now()
+    const diff = end - now
+
+    if (diff <= 0) {
+      el.innerHTML = "Đã kết thúc"
+      return
+    }
+
+    const h = Math.floor(diff / 3600000)
+    const m = Math.floor((diff % 3600000) / 60000)
+    const s = Math.floor((diff % 60000) / 1000)
+
+    el.innerHTML =
+      String(h).padStart(2, "0") + ":" +
+      String(m).padStart(2, "0") + ":" +
+      String(s).padStart(2, "0")
+  }, 1000)
+})

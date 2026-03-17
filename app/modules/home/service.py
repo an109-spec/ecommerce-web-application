@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models import Category, FlashSale, OrderItem, Product, ProductVariant
-
+from app.models import Review
 
 class HomeService:
     @staticmethod
@@ -15,20 +15,38 @@ class HomeService:
         return float(value)
 
     @staticmethod
-    def _product_card_payload(product: Product, sold_count: int = 0) -> dict:
+    def _product_card_payload(
+        product: Product,
+        sold_count: int = 0,
+        discount_percent: int | None = None,
+        sale_price: Decimal | None = None,
+    ) -> dict:
 
-        image_url = product.thumbnail or "https://via.placeholder.com/320x320?text=Shopee+Mini"
+        image_url = (
+            f"/static/{product.thumbnail}"
+            if product.thumbnail
+            else "https://via.placeholder.com/320x320?text=Shopee+Mini"
+        )
 
         variants = product.variants
         price = min(v.price for v in variants) if variants else 0
+        avg_rating = (
+            Review.query.with_entities(func.avg(Review.rating))
+            .filter(Review.product_id == product.id)
+            .scalar()
+        )
 
+        avg_rating = float(avg_rating) if avg_rating else 0.0
         return {
             "id": product.id,
             "name": product.name,
             "price": HomeService._to_float(price),
-            "rating": 4.7,
+            "rating": round(avg_rating, 1),
             "sold": int(sold_count),
-            "image": image_url
+            "image": image_url,
+            "discount_percent": discount_percent,
+            "sale_price": HomeService._to_float(sale_price) if sale_price is not None else None,
+            "product_url": f"/shop/{product.id}",
         }
 
     @staticmethod
@@ -41,6 +59,9 @@ class HomeService:
                 "rating": 4.6,
                 "sold": 120 + i * 3,
                 "image": "https://via.placeholder.com/320x320?text=Shopee+Mini",
+                "discount_percent": 15 if i % 4 == 0 else None,
+                "sale_price": int((199000 + i * 5000) * 0.85) if i % 4 == 0 else None,
+                "product_url": f"/shop/{i}",
             }
             for i in range(1, 9)
         ]
@@ -138,8 +159,8 @@ class HomeService:
                 .limit(4)
                 .all()
             )
-
             flash_cards = []
+            flash_map_by_product_id: dict[int, dict] = {}
             flash_end = None
             for sale in flash_sales:
                 variant = ProductVariant.query.get(sale.variant_id)
@@ -151,20 +172,33 @@ class HomeService:
                     continue
                 sold_count = sale.sold_count or 0
                 sale_price = variant.price * (Decimal(1) - Decimal(sale.discount_percent) / Decimal(100))
-                flash_cards.append(
-                    {
-                        **HomeService._product_card_payload(product, sold_count=sold_count),
-                        "sale_price": HomeService._to_float(sale_price),
-                        "discount_percent": sale.discount_percent
-                    }
+                card_payload = HomeService._product_card_payload(
+                    product,
+                    sold_count=sold_count,
+                    discount_percent=sale.discount_percent,
+                    sale_price=sale_price,
                 )
+                flash_cards.append(card_payload)
+                flash_map_by_product_id[product.id] = {
+                    "discount_percent": sale.discount_percent,
+                    "sale_price": sale_price,
+                }
                 if flash_end is None or sale.end_time < flash_end:
                     flash_end = sale.end_time
 
-            if flash_cards:
-                base["flash_sale"]["items"] = flash_cards
+            
+            base["flash_sale"]["items"] = flash_cards
+            if not flash_cards:
+                base["flash_sale"]["items"] = []
                 if flash_end:
                     base["flash_sale"]["ends_at_iso"] = flash_end.replace(tzinfo=timezone.utc).isoformat()
+            if base.get("recommended_items") and flash_map_by_product_id:
+                for item in base["recommended_items"]:
+                    flash_info = flash_map_by_product_id.get(item.get("id"))
+                    if not flash_info:
+                        continue
+                    item["discount_percent"] = flash_info.get("discount_percent")
+                    item["sale_price"] = HomeService._to_float(flash_info.get("sale_price"))
 
         except SQLAlchemyError:
             return base

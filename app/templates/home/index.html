@@ -92,12 +92,15 @@
   </div>
   <div class="product-grid four-cols">
     {% for item in flash_sale["items"] %}
-      <article class="product-card">
-        <img src="{{ item.image }}" alt="{{ item.name }}">
+      <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
+        <div class="product-card__image-wrap">
+          <img src="{{ item.image or 'https://via.placeholder.com/320x320' }}" alt="{{ item.name }}">
+          {% if item.discount_percent %}<span class="flash-badge">-{{ item.discount_percent }}%</span>{% endif %}
+        </div>
         <h3>{{ item.name }}</h3>
         <p class="price">₫{{ '{:,.0f}'.format(item.sale_price or item.price) }}</p>
         <small>Đã bán {{ item.sold }}</small>
-      </article>
+      </a>
     {% endfor %}
   </div>
 </section>
@@ -106,26 +109,30 @@
   <h2>Tìm kiếm hàng đầu</h2>
   <div class="product-grid four-cols">
     {% for item in top_search_items %}
-      <article class="product-card">
-        <img src="{{ item.image }}" alt="{{ item.name }}">
+          <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
+        <div class="product-card__image-wrap">
+          <img src="{{ item.image or 'https://via.placeholder.com/320x320' }}" alt="{{ item.name }}">
+        </div>
         <h3>{{ item.name }}</h3>
         <p class="price">₫{{ '{:,.0f}'.format(item.price) }}</p>
         <small>Hot • Đã bán {{ item.sold }}</small>
-      </article>
+      </a>
     {% endfor %}
   </div>
 </section>
 
-<section class="home-section">
-  <h2>Gợi ý hôm nay</h2>
-  <div class="product-grid four-cols">
+<section class="home-section" id="recommended-products">
+  <h2>Sản phẩm gợi ý</h2>
+  <div class="product-grid three-cols">
     {% for item in recommended_items %}
-      <article class="product-card">
-        <img src="{{ item.image }}" alt="{{ item.name }}">
+      <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
+        <div class="product-card__image-wrap">
+          <img src="{{ item.image or 'https://via.placeholder.com/320x320' }}" alt="{{ item.name }}">
+        </div>
         <h3>{{ item.name }}</h3>
         <p class="price">₫{{ '{:,.0f}'.format(item.price) }}</p>
         <small>⭐ {{ item.rating }} • Đã bán {{ item.sold }}</small>
-      </article>
+      </a>
     {% endfor %}
   </div>
 </section>
