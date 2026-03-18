@@ -29,7 +29,7 @@
             </header>
 
             <div class="cart-shop-items">
-              {% for item in shop.items %}
+             {% for item in shop["items"] %}
                 {% include "cart/_cart_item.html" %}
               {% endfor %}
             </div>

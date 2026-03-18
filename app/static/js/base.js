@@ -68,12 +68,42 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   if (cartTrigger && miniCart) {
-    cartTrigger.addEventListener('click', async (event) => {
-      event.preventDefault();
-      const isHidden = miniCart.hidden;
-      if (isHidden) {
-        await refreshMiniCart(true);
-      } else {
+    let hideTimer = null;
+
+    const clearHideTimer = () => {
+      if (hideTimer) {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    };
+
+    const scheduleHideMiniCart = () => {
+      clearHideTimer();
+      hideTimer = window.setTimeout(() => {
+        miniCart.hidden = true;
+      }, 120);
+    };
+
+    const openMiniCart = async () => {
+      clearHideTimer();
+      await refreshMiniCart(true);
+    };
+
+    cartTrigger.addEventListener('mouseenter', () => {
+      openMiniCart().catch((error) => console.error('Failed to load mini cart', error));
+    });
+
+    cartTrigger.addEventListener('focus', () => {
+      openMiniCart().catch((error) => console.error('Failed to load mini cart', error));
+    });
+
+    miniCart.addEventListener('mouseenter', clearHideTimer);
+    miniCart.addEventListener('mouseleave', scheduleHideMiniCart);
+    cartTrigger.addEventListener('mouseleave', scheduleHideMiniCart);
+
+    document.addEventListener('focusin', (event) => {
+      const withinCart = event.target.closest('[data-cart-shell]');
+      if (!withinCart && !miniCart.hidden) {
         miniCart.hidden = true;
       }
     });
@@ -81,6 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (event) => {
       const withinCart = event.target.closest('[data-cart-shell]');
       if (!withinCart && !miniCart.hidden) {
+        miniCart.hidden = true;
+      }
+    });
+    
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !miniCart.hidden) {
         miniCart.hidden = true;
       }
     });
