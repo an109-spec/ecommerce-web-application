@@ -10,9 +10,36 @@ from app.models.flash_sale import FlashSale
 from app.models.review import Review
 from app.models.shop import Shop
 from .search import full_text_query
-
+from sqlalchemy import inspect, text
 
 class ProductService:
+    @staticmethod
+    def _get_category_names(product: Product) -> list[str]:
+        category_names = [
+            pc.category.name
+            for pc in (product.product_categories or [])
+            if pc.category and pc.category.name
+        ]
+        if category_names:
+            return category_names
+
+        product_columns = {
+            column["name"]
+            for column in inspect(db.engine).get_columns("products")
+        }
+        if "category_id" not in product_columns:
+            return []
+
+        legacy_category_id = db.session.execute(
+            text("SELECT category_id FROM products WHERE id = :product_id"),
+            {"product_id": product.id},
+        ).scalar()
+        if not legacy_category_id:
+            return []
+
+        legacy_category = db.session.get(Category, legacy_category_id)
+        return [legacy_category.name] if legacy_category and legacy_category.name else []
+
     @staticmethod
     def _normalize_asset_url(src: str | None, fallback: str = "/static/images/no-image.png") -> str:
         if not src:
@@ -176,17 +203,8 @@ class ProductService:
             }
         )
 
-        primary = next(
-            (pc for pc in product.product_categories if pc.is_primary),
-            product.product_categories[0] if product.product_categories else None
-        )
-
-        primary_category = primary.category.name if primary and primary.category else None
-        if not primary_category:
-            legacy_category_id = getattr(product, "category_id", None)
-            if legacy_category_id:
-                legacy_category = Category.query.get(legacy_category_id)
-                primary_category = legacy_category.name if legacy_category else None
+        category_names = ProductService._get_category_names(product)
+        primary_category = category_names[0] if category_names else None
         shop = Shop.query.get(product.shop_id) if product.shop_id else None
         shop_total_products = Product.query.filter(Product.shop_id == product.shop_id, Product.status == ProductStatus.ACTIVE).count() if product.shop_id else 0
 
@@ -214,7 +232,7 @@ class ProductService:
                         "id": v.id,
                         "price": float(v.price),
                         "stock": v.stock,
-                        "image": getattr(v, "image", None),
+                        "image": ProductService._normalize_asset_url(v.image_url) if v.image_url else None,
 
                         "size": next(
                         (a.value for a in (v.variant_attributes or [])
@@ -231,11 +249,7 @@ class ProductService:
                     for v in variants
                 ],
             "stock": total_stock,
-            "categories": [
-                    pc.category.name
-                    for pc in product.product_categories
-                    if pc.category
-                ],
+            "categories": category_names,
             "shop": {
                 "id": shop.id if shop else None,
                 "name": shop.name if shop else "OneShop",

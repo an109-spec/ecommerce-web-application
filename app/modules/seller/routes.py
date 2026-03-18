@@ -26,7 +26,7 @@ from .product_service import SellerProductService, SellerProductCreateDTO
 
 from .repository import SellerRepository
 from app.modules.promotion.repository import FlashSaleRepository
-from app.models.product import ProductImage
+from app.models.product import ProductCategory,ProductImage
 from app.modules.promotion.service import VoucherService, PromotionService
 from app.utils.time import utcnow
 from app.models.voucher import Voucher
@@ -498,9 +498,19 @@ def edit_product(pid):
 
         name = request.form.get("name")
         description = request.form.get("description")
-        category_id = request.form.getlist("category_ids[]")
-        if category_id:
-            product.category_id = int(category_id[0])
+        category_ids = [
+            int(category_id)
+            for category_id in request.form.getlist("category_ids[]")
+            if category_id
+        ]
+        product.product_categories.clear()
+        for idx, category_id in enumerate(category_ids):
+            product.product_categories.append(
+                ProductCategory(
+                    category_id=category_id,
+                    is_primary=(idx == 0),
+                )
+            )
         shipping_fast = request.form.get("shipping_fast")
         shipping_same_day = request.form.get("shipping_same_day")
         shipping_express = request.form.get("shipping_express")

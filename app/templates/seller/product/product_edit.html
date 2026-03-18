@@ -33,7 +33,7 @@
 <label>Danh mục</label>
 
 <div class="category-tags">
-
+{% set selected_category_ids = product.product_categories | map(attribute='category_id') | list %}
 {% for c in categories %}
 <label class="category-tag">
 
@@ -41,7 +41,8 @@
 type="checkbox" 
 name="category_ids[]" 
 value="{{ c.id }}"
-{% if c.id == product.category_id %}checked{% endif %}
+{% if c.id in selected_category_ids %}checked{% endif %}
+
 >
 
 <span>{{ c.name }}</span>
