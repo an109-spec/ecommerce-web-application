@@ -63,3 +63,66 @@
 @media (max-width: 900px) {
   .product-hero-grid { grid-template-columns: 1fr; }
 }
+
+.price-block { margin: 10px 0; }
+
+.flash-sale-bar {
+  background: #ffedea;
+  color: #ee4d2d;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.price-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.price-current {
+  color: #ee4d2d;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.price-original {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.price-percent {
+  background: #ee4d2d;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.promotion-block,
+.voucher-block {
+  margin-top: 10px;
+}
+
+.promo-chip,
+.voucher-chip {
+  display: inline-block;
+  border: 1px dashed #ee4d2d;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 6px;
+  font-size: 13px;
+}
+.variant-chip.active {
+  border: 1px solid #ee4d2d;
+  background: #fff5f3;
+  color: #ee4d2d;
+}
+
+.thumb-img.active {
+  border: 2px solid #ee4d2d;
+}

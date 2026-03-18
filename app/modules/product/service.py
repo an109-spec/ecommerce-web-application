@@ -3,7 +3,7 @@ from app.extensions.db import db
 
 from .dto import ProductCreateDTO, ProductResponseDTO, ProductUpdateDTO, ReviewCreateDTO
 from .filters import filter_by_category, filter_by_price, sort_products
-from app.models.product import Product, ProductImage
+from app.models.product import Category, Product, ProductImage, ProductCategory
 from app.core.enums.product_status import ProductStatus
 from datetime import datetime, timezone
 from app.models.flash_sale import FlashSale
@@ -51,11 +51,17 @@ class ProductService:
             description=data.description,
             price=data.price,
             stock_quantity=data.stock_quantity,
-            category_id=data.category_id,
             thumbnail=data.thumbnail,
         )
         db.session.add(product)
         db.session.flush()
+        if data.category_ids:
+            for i, cat_id in enumerate(data.category_ids):
+                db.session.add(ProductCategory(
+                    product_id=product.id,
+                    category_id=cat_id,
+                    is_primary=(i == 0)
+                ))
 
         if data.thumbnail:
             db.session.add(ProductImage(product_id=product.id, image_url=data.thumbnail))
@@ -83,8 +89,14 @@ class ProductService:
             product.price = data.price
         if data.stock_quantity is not None:
             product.stock_quantity = data.stock_quantity
-        if data.category_id_provided:
-            product.category_id = data.category_id
+        if data.category_ids_provided:
+            product.product_categories.clear()
+            for i, cat_id in enumerate(data.category_ids or []):
+                db.session.add(ProductCategory(
+                    product_id=product.id,
+                    category_id=cat_id,
+                    is_primary=(i == 0)
+                ))
         if data.thumbnail is not None:
             product.thumbnail = data.thumbnail
 
@@ -141,13 +153,18 @@ class ProductService:
             discount_percent = int(active_sale.discount_percent or 0)
             flash_price = float(active_sale.variant.price * (100 - discount_percent) / 100)
             flash_ends_at = active_sale.end_time.isoformat()
+        def _normalized_key(value: str | None) -> str:
+            return (value or "").strip().lower()
+
+        size_keys = {"size", "kích thước", "kich thuoc"}
+        color_keys = {"color", "màu", "mau"}
 
         size_options = sorted(
             {
                 attr.value
                 for variant in variants
                 for attr in variant.variant_attributes
-                if (attr.name or "").strip().lower() == "size"
+                if _normalized_key(attr.name) in size_keys and (attr.value or "").strip()
             }
         )
         color_options = sorted(
@@ -155,11 +172,21 @@ class ProductService:
                 attr.value
                 for variant in variants
                 for attr in variant.variant_attributes
-                if (attr.name or "").strip().lower() == "color"
+                 if _normalized_key(attr.name) in color_keys and (attr.value or "").strip()
             }
         )
 
-        primary_category = product.product_categories[0].category.name if product.product_categories else None
+        primary = next(
+            (pc for pc in product.product_categories if pc.is_primary),
+            product.product_categories[0] if product.product_categories else None
+        )
+
+        primary_category = primary.category.name if primary and primary.category else None
+        if not primary_category:
+            legacy_category_id = getattr(product, "category_id", None)
+            if legacy_category_id:
+                legacy_category = Category.query.get(legacy_category_id)
+                primary_category = legacy_category.name if legacy_category else None
         shop = Shop.query.get(product.shop_id) if product.shop_id else None
         shop_total_products = Product.query.filter(Product.shop_id == product.shop_id, Product.status == ProductStatus.ACTIVE).count() if product.shop_id else 0
 
@@ -168,18 +195,47 @@ class ProductService:
             "name": product.name,
             "description": product.description,
             "thumbnail": ProductService._normalize_asset_url(product.thumbnail),
+
             "images": [ProductService._normalize_asset_url(img.image_url) for img in product.images]
             or ([ProductService._normalize_asset_url(product.thumbnail)] if product.thumbnail else []),
+
             "rating": round(avg_rating, 1),
             "reviews_count": review_count,
+
             "original_price": float(original_price),
             "flash_price": flash_price,
             "discount_percent": discount_percent,
             "flash_sale_ends_at": flash_ends_at,
+
             "size_options": size_options,
             "color_options": color_options,
+            "variants": [
+                    {
+                        "id": v.id,
+                        "price": float(v.price),
+                        "stock": v.stock,
+                        "image": getattr(v, "image", None),
+
+                        "size": next(
+                        (a.value for a in (v.variant_attributes or [])
+                        if (a.name or "").strip().lower() in ["size", "kích thước", "kich thuoc"]),
+                        None
+                    ),
+
+                        "color": next(
+                            (a.value for a in v.variant_attributes
+                            if (a.name or "").strip().lower() in ["color", "màu", "mau"]),
+                            None
+                        ),
+                    }
+                    for v in variants
+                ],
             "stock": total_stock,
-            "category": primary_category,
+            "categories": [
+                    pc.category.name
+                    for pc in product.product_categories
+                    if pc.category
+                ],
             "shop": {
                 "id": shop.id if shop else None,
                 "name": shop.name if shop else "OneShop",

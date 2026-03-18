@@ -6,9 +6,11 @@
 
 <p><b>Tên:</b> {{ product.name }}</p>
 
-<p><b>Giá:</b> {{ product.price }}</p>
+<p><b>Giá:</b> {{ product.variants | map(attribute='price') | min }}</p>
 
-<p><b>Tồn kho:</b> {{ product.stock }}</p>
+<p><b>Tồn kho:</b> 
+    {{ product.variants | map(attribute='stock') | sum }}
+</p>
 
 <p><b>Mô tả:</b> {{ product.description }}</p>
 

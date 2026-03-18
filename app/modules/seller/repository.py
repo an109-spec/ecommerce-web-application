@@ -7,6 +7,7 @@ from app.models.product import ProductVariant, VariantAttribute, Product
 import os
 import uuid
 from werkzeug.utils import secure_filename
+from app.models.promotion import Promotion
 
 class SellerRepository:
 
@@ -122,10 +123,8 @@ class SellerRepository:
         for data in variants:
 
             image_file = data.get("image")
-            image_url = None
-
+            
             if hasattr(image_file, "filename") and image_file.filename:
-
                 filename = str(uuid.uuid4()) + "_" + secure_filename(image_file.filename)
 
                 save_path = os.path.join(
@@ -136,8 +135,10 @@ class SellerRepository:
                 image_file.save(save_path)
 
                 image_url = "/static/uploads/products/" + filename
-            elif isinstance(image_file, str):
+            elif isinstance(image_file, str) and image_file.strip():
                 image_url = image_file
+            else:
+                image_url = None
             variant = ProductVariant(
                 product_id=product_id,
                 price=data["price"],
@@ -168,6 +169,7 @@ class SellerRepository:
                 )
 
                 db.session.add(attr)
+
     @staticmethod
     def delete_variants(product_id):
 
@@ -175,6 +177,15 @@ class SellerRepository:
             product_id=product_id
         ).all()
 
+        variant_ids = [v.id for v in variants]
+
+        # 🔥 XÓA PROMOTION TRƯỚC
+        if variant_ids:
+            Promotion.query.filter(
+                Promotion.variant_id.in_(variant_ids)
+            ).delete(synchronize_session=False)
+
+        # 🔥 SAU ĐÓ mới xoá variant
         for v in variants:
             db.session.delete(v)
 

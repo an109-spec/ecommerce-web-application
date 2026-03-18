@@ -2,17 +2,14 @@ from dataclasses import dataclass
 from typing import List, Optional
 from decimal import Decimal
 
-
 @dataclass
 class SellerProductCreateDTO:
-
     name: str
     description: Optional[str]
-    price: Decimal
-    stock: int
-    category_id: Optional[int]
     images: List[str]
-
+    variants: list[dict]
+    category_ids: list[int] | None = None
+    
 @dataclass
 class CreateShopDTO:
     name: str

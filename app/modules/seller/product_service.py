@@ -4,18 +4,10 @@ import re
 
 from app.common.exceptions import ForbiddenError, NotFoundError, ValidationError, AppException
 from app.core.enums.product_status import ProductStatus
-from app.models import Product
+from app.models import Product, ProductCategory
 from .repository import SellerRepository
-
-
-@dataclass
-class SellerProductCreateDTO:
-    name: str
-    description: str | None
-    category_id: int | None
-    images: list[str]
-    variants: list[dict]
-
+from app.extensions.db import db
+from .dto import SellerProductCreateDTO
 @dataclass
 class SellerProductUpdateDTO:
     product_id: int
@@ -73,6 +65,14 @@ class SellerProductService:
         )
 
         SellerRepository.create_product(product)
+ 
+        if dto.category_ids:
+            for idx, cat_id in enumerate(dto.category_ids):
+                db.session.add(ProductCategory(
+                    product_id=product.id,
+                    category_id=cat_id,
+                    is_primary=(idx == 0)
+                ))
 
         # tạo variants
         SellerRepository.create_product_variants(product.id, dto.variants)
@@ -136,12 +136,14 @@ class SellerProductService:
 
         if dto.price is not None:
             SellerProductService._validate_price(dto.price)
-            product.price = dto.price
+            for v in product.variants:
+                v.price = dto.price
 
         if dto.stock is not None:
             SellerProductService._validate_stock(dto.stock)
 
-            product.stock_quantity = dto.stock
+            for v in product.variants:
+                v.stock = dto.stock
 
             if dto.stock == 0:
                 product.status = ProductStatus.OUT_OF_STOCK
@@ -149,7 +151,11 @@ class SellerProductService:
                 product.status = ProductStatus.ACTIVE
 
         if dto.category_id is not None:
-            product.category_id = dto.category_id
+            db.session.add(ProductCategory(
+                product_id=product.id,
+                category_id=dto.category_id,
+                is_primary=True
+            ))
 
         SellerRepository.commit()
 
@@ -232,7 +238,7 @@ class SellerProductService:
     @staticmethod
     def soft_delete(shop_id: int, product_id: int):
 
-        product = SellerRepository.get_product(product_id)
+        product = SellerRepository.get_product(shop_id, product_id)
 
         if not product:
             raise NotFoundError("Không tìm thấy sản phẩm")

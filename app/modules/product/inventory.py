@@ -1,8 +1,7 @@
 from app.common.exceptions import ConflictError, NotFoundError, ValidationError
 from app.extensions.db import db
 
-from .models import Product
-
+from app.models import Product
 
 def _validate_quantity(quantity: int) -> int:
     try:

@@ -308,12 +308,12 @@ def create_product():
 
         name = request.form.get("name")
         description = request.form.get("description")
-        category_id = request.form.get("category_id")
+        category_ids = request.form.getlist("category_ids")
 
         if not name:
             raise ValueError("Tên sản phẩm không được để trống")
 
-        if not category_id:
+        if not category_ids:
             raise ValueError("Phải chọn danh mục")
 
         prices = request.form.getlist("variant_price[]")
@@ -423,7 +423,7 @@ def create_product():
         dto = SellerProductCreateDTO(
             name=name,
             description=description,
-            category_id=int(category_id),
+            category_ids=[int(cid) for cid in category_ids],
             images=images,
             variants=variants
         )
@@ -584,8 +584,10 @@ def edit_product(pid):
             image_urls.append(f"/static/uploads/products/{filename}")
         if image_urls:
             SellerRepository.create_product_images(pid,image_urls)
+            product.thumbnail = image_urls[0]
 
     except Exception as e:
+        db.session.rollback()
         categories = Category.query.all()
         return render_template(
             "seller/product/product_edit.html",
@@ -594,6 +596,7 @@ def edit_product(pid):
             categories=categories,
             error=str(e),
         )
+    db.session.commit() 
     flash("Cập nhật sản phẩm thành công", "success")
     return redirect(url_for("seller.product_list"))
 
@@ -618,9 +621,29 @@ def delete_product_image():
     ).first()
 
     if img:
-        db.session.delete(img)
-        db.session.commit()
+        product_id = img.product_id
+        image_name = basename(img.image_url)
+        file_path = os.path.join(
+        "app/static/uploads/products",
+        image_name
+    )
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print("Delete file error:", e)
 
+        db.session.delete(img)
+        db.session.flush()
+
+        # 👇 THÊM KHÚC NAYF
+        first_img = ProductImage.query.filter_by(product_id=product_id).first()
+        product = Product.query.get(product_id)
+
+        if product:
+            product.thumbnail = first_img.image_url if first_img else None
+
+        db.session.commit()
     return jsonify({"success": True})
 
 @seller_bp.route("/products/<int:pid>/hide")
@@ -1056,3 +1079,25 @@ def voucher_delete(voucher_id):
 def voucher_toggle(voucher_id):
     VoucherService.toggle_voucher(voucher_id)
     return redirect("/seller/vouchers")
+
+@seller_bp.route("/api/flash-sales/<int:flash_id>/update", methods=["POST"])
+@seller_required
+def update_flash_sale(flash_id):
+    data = request.get_json() or {}
+
+    flash_sale = FlashSale.query.get_or_404(flash_id)
+
+    try:
+        flash_sale.discount_percent = data.get("discount_percent")
+        flash_sale.start_time = datetime.fromisoformat(data.get("start_time"))
+        flash_sale.end_time = datetime.fromisoformat(data.get("end_time"))
+
+        db.session.commit()
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 400
+
+    return jsonify({"success": True})

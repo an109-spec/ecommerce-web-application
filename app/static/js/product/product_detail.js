@@ -1,9 +1,9 @@
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
   const root = document.getElementById('product-detail-page');
   if (!root) return;
 
   const productId = root.dataset.productId;
-  const endpointBase = root.dataset.endpointBase || '/products';
+  const endpointBase = '/products';
   const detailEl = document.getElementById('product-detail');
   const relatedEl = document.getElementById('related-products');
   const reviewEl = document.getElementById('review-list');
@@ -26,9 +26,35 @@
     return `/static/${src}`;
   }
 
-  function renderOptionGroup(title, values) {
-    const items = (values || []).map((value) => `<button type="button" class="variant-chip">${value}</button>`).join('');
-    return `<div class="product-option-row"><span>${title}:</span><div class="variant-chip-group">${items || '<small>Đang cập nhật</small>'}</div></div>`;
+function renderOptionGroup(title, values, type) {
+  const items = (values || []).map((value) => `
+    <button 
+      type="button" 
+      class="variant-chip" 
+      data-type="${type}" 
+      data-value="${value}">
+      ${value}
+    </button>
+  `).join('');
+
+  return `
+    <div class="product-option-row">
+      <span>${title}:</span>
+      <div class="variant-chip-group">
+        ${items || '<small>Đang cập nhật</small>'}
+      </div>
+    </div>
+  `;
+}
+  function calcDiscountPercent(originalPrice, flashPrice, reportedPercent) {
+    const reported = Number(reportedPercent || 0);
+    if (reported > 0) return reported;
+
+    const original = Number(originalPrice || 0);
+    const flash = Number(flashPrice || 0);
+    if (original <= 0 || flash <= 0 || flash >= original) return 0;
+
+    return Math.round(((original - flash) / original) * 100);
   }
 
 
@@ -38,27 +64,60 @@
       .filter(Boolean)
       .map((src) => normalizeAssetUrl(src));
     const mainImage = images[0] || '/static/images/no-image.png';
-    const currentPrice = item.flash_price != null ? item.flash_price : item.original_price;
+    const hasFlashSale = item.flash_price != null;
+    const currentPrice = hasFlashSale ? item.flash_price : item.original_price;
+    const discountPercent = calcDiscountPercent(item.original_price, item.flash_price, item.discount_percent);
     const shopLogo = normalizeAssetUrl(shop.logo);
 
-    detailEl.innerHTML = `
+     detailEl.innerHTML= `
       <article class="product-detail">
         <div class="product-hero-grid">
           <div class="product-media">
-            <img src="${mainImage}" alt="${item.name}" class="product-main-image">
+            <img src="${mainImage}" alt="${item.name}" class="product-main-image" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
             <div class="product-thumbnails">
-              ${images.map((src) => `<img src="${src}" alt="${item.name}">`).join('')}
+              ${images.map((src) => `<img src="${src}" data-src="${src}" class="thumb-img" alt="${item.name}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">`).join('')}
             </div>
           </div>
           <div class="product-info">
             <h2>${item.name}</h2>
             <p class="product-rating">${toStars(item.rating)} • ${item.reviews_count || 0} đánh giá</p>
-            <p class="product-original-price">Giá gốc: ${fmtCurrency(item.original_price)}</p>
-            <p class="product-sale-price">Flash Sale: ${fmtCurrency(currentPrice)}</p>
-            <p class="product-discount">Giảm: ${item.discount_percent || 0}%</p>
-            <p class="product-countdown">Flash Sale kết thúc: <span id="product-flash-countdown" data-ends-at="${item.flash_sale_ends_at || ''}">--:--:--</span></p>
-            ${renderOptionGroup('Size', item.size_options)}
-            ${renderOptionGroup('Color', item.color_options)}
+            <div class="price-block">
+
+  ${hasFlashSale ? `
+    <div class="flash-sale-bar">
+      ⚡ FLASH SALE 
+      <span id="product-flash-countdown" data-ends-at="${item.flash_sale_ends_at || ''}">
+        --:--:--
+      </span>
+    </div>
+  ` : ''}
+
+  <div class="price-main">
+    <span class="price-current" id="product-price">${fmtCurrency(currentPrice)}</span>
+    
+    ${discountPercent > 0 ? `
+      <span class="price-original">${fmtCurrency(item.original_price)}</span>
+      <span class="price-percent">-${discountPercent}%</span>
+    ` : ''}
+  </div>
+
+</div>
+
+${item.promotions && item.promotions.length ? `
+  <div class="promotion-block">
+    🎉 Khuyến mãi:
+    ${item.promotions.map(p => `<span class="promo-chip">${p.description || 'Ưu đãi'}</span>`).join('')}
+  </div>
+` : ''}
+
+${item.vouchers && item.vouchers.length ? `
+  <div class="voucher-block">
+    🎟️ Mã giảm giá:
+    ${item.vouchers.map(v => `<span class="voucher-chip">${v.code || 'Voucher'}</span>`).join('')}
+  </div>
+` : ''}
+            ${renderOptionGroup('Size', item.size_options, 'size')}
+            ${renderOptionGroup('Color', item.color_options, 'color')}
             <div class="quantity-picker">
               <span>Số lượng</span>
               <button type="button" id="qty-minus">-</button>
@@ -81,7 +140,7 @@
       <section class="shop-info-block">
         <h3>Thông tin shop</h3>
         <div class="shop-info-grid">
-          <img src="${shopLogo}" alt="${shop.name || 'Shop'}">
+          <img src="${shopLogo}" alt="${shop.name || 'Shop'}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
           <div>
             <p><strong>${shop.name || 'OneShop'}</strong></p>
             <p>Đánh giá shop: ${Number(shop.rating || 0).toFixed(1)}</p>
@@ -94,11 +153,76 @@
 
       <section class="product-meta-block">
         <h3>Chi tiết sản phẩm</h3>
-        <p>Danh mục: ${item.category || 'Đang cập nhật'}</p>
+        <p>Danh mục: ${(item.categories || []).join(', ') || 'Đang cập nhật'}</p>
         <p>Tồn kho: ${item.stock || 0}</p>
       </section>
     `;
+    let selected = {
+  size: null,
+  color: null
+};
 
+const priceEl = detailEl.querySelector('#product-price');
+const mainImageEl = detailEl.querySelector('.product-main-image');
+
+// CLICK SIZE / COLOR
+detailEl.querySelectorAll('.variant-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.type;
+    const value = btn.dataset.value;
+
+    // set active UI
+    detailEl.querySelectorAll(`.variant-chip[data-type="${type}"]`)
+      .forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // lưu lựa chọn
+    selected[type] = value;
+
+    updateVariant();
+  });
+});
+
+// CLICK ẢNH NHỎ
+detailEl.querySelectorAll('.thumb-img').forEach(img => {
+  img.addEventListener('click', () => {
+    mainImageEl.src = img.dataset.src;
+
+    detailEl.querySelectorAll('.thumb-img')
+      .forEach(i => i.classList.remove('active'));
+    img.classList.add('active');
+  });
+});
+
+
+// 🔥 CORE LOGIC
+function updateVariant() {
+  if (!item.variants) return;
+
+  const match = item.variants.find(v => {
+    return (!selected.size || v.size == selected.size) &&
+          (!selected.color || (v.color || '').toLowerCase() === selected.color.toLowerCase());
+  });
+
+  if (!match) return;
+
+  // ✅ ĐỔI GIÁ
+  if (priceEl && match.price) {
+    priceEl.textContent = fmtCurrency(match.price);
+  }
+
+  // ✅ luôn tìm riêng theo color để đổi ảnh
+  if (selected.color && item.variants && mainImageEl) {
+    const colorVariant = item.variants.find(v =>
+  (v.color || '').toLowerCase() === selected.color.toLowerCase()
+  && v.image
+);
+
+    if (colorVariant && colorVariant.image) {
+      mainImageEl.src = normalizeAssetUrl(colorVariant.image);
+    }
+  }
+}
     const quantityInput = detailEl.querySelector('#detail-quantity');
     const qtyMinus = detailEl.querySelector('#qty-minus');
     const qtyPlus = detailEl.querySelector('#qty-plus');
@@ -151,7 +275,7 @@ function renderRelated(items) {
     return `
       <a class="product-card" href="/shop/${item.id}">
         <div class="product-card__image-wrap">
-          <img src="${img}" alt="${item.name}">
+          <img src="${img}" alt="${item.name}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
         </div>
         <h4>${item.name}</h4>
         <p>${fmtCurrency(item.price)}</p>
@@ -161,8 +285,15 @@ function renderRelated(items) {
 }
 
   function renderReviews(items) {
-    reviewEl.innerHTML = (items || []).map((r) => window.ProductReview.renderItem(r)).join('') || '<p>Chưa có đánh giá.</p>';
+    if (!window.ProductReview) {
+    reviewEl.innerHTML = '<p>Lỗi load review component</p>';
+    return;
   }
+
+  reviewEl.innerHTML =
+    (items || []).map((r) => window.ProductReview.renderItem(r)).join('')
+    || '<p>Chưa có đánh giá.</p>';
+}
 
   async function loadAll() {
     const [productRes, relatedRes, reviewsRes] = await Promise.all([
@@ -171,9 +302,20 @@ function renderRelated(items) {
       fetch(`${endpointBase}/${productId}/reviews`)
     ]);
 
-    renderProduct(await productRes.json());
-    renderRelated((await relatedRes.json()).items || []);
-    renderReviews((await reviewsRes.json()).items || []);
+    const productData = await productRes.json();
+    console.log("PRODUCT DATA:", productData);
+    const relatedData = await relatedRes.json();
+    const reviewData = await reviewsRes.json();
+
+    // ❗ CHECK API ERROR
+    if (!productRes.ok || productData.error) {
+      detailEl.innerHTML = `<p>Lỗi: ${productData.error || 'Không tải được sản phẩm'}</p>`;
+      return;
+    }
+
+    renderProduct(productData);
+    renderRelated(relatedData.items || []);
+    renderReviews(reviewData.items || []);
     if (window.ProductQR) window.ProductQR.bind(productId);
   }
 
@@ -198,4 +340,5 @@ function renderRelated(items) {
   });
 
   loadAll();
-})();
+
+});

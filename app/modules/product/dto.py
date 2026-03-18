@@ -11,7 +11,7 @@ class ProductCreateDTO:
     description: str | None
     price: Decimal
     stock_quantity: int
-    category_id: int | None
+    category_ids: list[int] 
     thumbnail: str | None
 
     @staticmethod
@@ -37,12 +37,17 @@ class ProductCreateDTO:
         if stock_quantity < 0:
             raise ValidationError("stock_quantity phải >= 0")
 
-        category_id = data.get("category_id")
-        if category_id is not None:
+        raw_category_ids = data.get("category_ids") or []
+
+        if not isinstance(raw_category_ids, list):
+            raise ValidationError("category_ids phải là list")
+
+        category_ids = []
+        for cid in raw_category_ids:
             try:
-                category_id = int(category_id)
+                category_ids.append(int(cid))
             except (TypeError, ValueError):
-                raise ValidationError("category_id không hợp lệ")
+                raise ValidationError("category_ids chứa giá trị không hợp lệ")
 
         thumbnail = data.get("thumbnail")
         description = data.get("description")
@@ -53,7 +58,7 @@ class ProductCreateDTO:
             description=description,
             price=price,
             stock_quantity=stock_quantity,
-            category_id=category_id,
+            category_ids=category_ids,
             thumbnail=thumbnail,
         )
 
@@ -65,9 +70,10 @@ class ProductUpdateDTO:
     description: str | None = None
     price: Decimal | None = None
     stock_quantity: int | None = None
-    category_id: int | None = None
+    category_ids: list[int] | None = None
+    category_ids_provided: bool = False
     thumbnail: str | None = None
-    category_id_provided: bool = False
+
 
     @staticmethod
     def from_dict(data: dict) -> "ProductUpdateDTO":
@@ -103,17 +109,19 @@ class ProductUpdateDTO:
                 raise ValidationError("stock_quantity phải >= 0")
             dto.stock_quantity = stock_quantity
 
-        if "category_id" in data:
-            category_id = data.get("category_id")
-            if category_id is None:
-                dto.category_id = None
-                dto.category_id_provided = True
-            else:
+        if "category_ids" in data:
+            raw = data.get("category_ids") or []
+            if not isinstance(raw, list):
+                raise ValidationError("category_ids phải là list")
+
+            dto.category_ids = []
+            for cid in raw:
                 try:
-                    dto.category_id = int(category_id)
-                    dto.category_id_provided = True
+                    dto.category_ids.append(int(cid))
                 except (TypeError, ValueError):
-                    raise ValidationError("category_id không hợp lệ")
+                    raise ValidationError("category_ids không hợp lệ")
+
+            dto.category_ids_provided = True
 
         if "description" in data:
             dto.description = data.get("description")
@@ -132,21 +140,24 @@ class ProductResponseDTO:
     description: str | None
     price: str
     stock_quantity: int
-    category_id: int | None
+    category_ids: list[int] 
     thumbnail: str | None
     created_at: str
     updated_at: str
 
     @staticmethod
     def from_model(product) -> "ProductResponseDTO":
+        variants = product.variants
+        price = min(v.price for v in variants) if variants else 0
+        stock = sum(v.stock for v in variants) if variants else 0
         return ProductResponseDTO(
             id=product.id,
             name=product.name,
             slug=product.slug,
             description=product.description,
-            price=str(product.price),
-            stock_quantity=product.stock_quantity,
-            category_id=product.category_id,
+            price=str(price),
+            stock_quantity=stock,
+            category_ids=[pc.category_id for pc in product.product_categories],
             thumbnail=product.thumbnail,
             created_at=product.created_at.isoformat(),
             updated_at=product.updated_at.isoformat(),
@@ -160,7 +171,7 @@ class ProductResponseDTO:
             "description": self.description,
             "price": self.price,
             "stock_quantity": self.stock_quantity,
-            "category_id": self.category_id,
+            "category_ids": self.category_ids,
             "thumbnail": self.thumbnail,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
