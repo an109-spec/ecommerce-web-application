@@ -1,11 +1,19 @@
-<div class="cart-summary">
-    <p>Subtotal: {{ summary.subtotal }} đ</p>
-    <p>Discount: {{ summary.discount }} đ</p>
-    <h3>Total: {{ summary.total }} đ</h3>
+<aside class="cart-summary-panel">
+  <div class="cart-summary-panel__card">
+    <p class="cart-summary-panel__eyebrow">Order Summary</p>
+    <h2>Tổng đơn hàng</h2>
 
-    <form action="{{ url_for('cart.clear') }}" method="POST">
-        <button type="submit">Clear Cart</button>
+    <div class="cart-summary-panel__rows">
+      <div><span>Subtotal</span><strong>₫{{ "{:,.0f}".format(cart_payload.cart_subtotal) }}</strong></div>
+      <div><span>Shop Voucher</span><strong>-₫{{ "{:,.0f}".format(cart_payload.voucher_discount_total) }}</strong></div>
+      <div><span>Shipping</span><strong>₫{{ "{:,.0f}".format(cart_payload.shipping_total) }}</strong></div>
+      <div class="is-total"><span>Total</span><strong>₫{{ "{:,.0f}".format(cart_payload.cart_total) }}</strong></div>
+    </div>
+
+    <a href="/order/checkout" class="btn btn--primary cart-summary-panel__checkout">Tiến hành thanh toán</a>
+
+    <form action="{{ url_for('cart.clear') }}" method="post">
+      <button type="submit" class="btn btn--outline cart-summary-panel__clear">Clear Cart</button>
     </form>
-
-    <a href="/order/checkout" class="checkout-btn">Checkout</a>
-</div>
+  </div>
+</aside>

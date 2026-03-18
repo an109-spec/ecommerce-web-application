@@ -126,12 +126,12 @@ ${item.vouchers && item.vouchers.length ? `
               <span class="stock-text">Kho: ${item.stock || 0}</span>
             </div>
             <div class="product-actions">
-              <form action="/cart/add" method="post">
+              <form id="add-to-cart-form">
                 <input type="hidden" name="product_id" value="${item.id}">
                 <input type="hidden" name="quantity" id="add-to-cart-qty" value="1">
                 <button type="submit" class="btn btn--outline">Thêm vào giỏ hàng</button>
               </form>
-              <a class="btn btn--primary" href="/cart">Mua ngay</a>
+              <button type="button" class="btn btn--primary" id="buy-now-btn">Mua ngay</button>
             </div>
           </div>
         </div>
@@ -270,6 +270,75 @@ function updateVariant() {
 
     quantityInput?.addEventListener('change', syncQty);
     syncQty();
+
+        const addToCartForm = detailEl.querySelector('#add-to-cart-form');
+    const buyNowBtn = detailEl.querySelector('#buy-now-btn');
+
+    const selectedVariant = () => {
+      if (!item.variants || !item.variants.length) return null;
+      return item.variants.find((variant) => {
+        const sizeOk = !selected.size || variant.size === selected.size;
+        const colorOk = !selected.color || (variant.color || '').toLowerCase() === (selected.color || '').toLowerCase();
+        return sizeOk && colorOk;
+      }) || item.variants[0];
+    };
+
+    const submitCartAction = async (redirectToCart = false) => {
+      const requiresSize = Array.isArray(item.size_options) && item.size_options.length > 0;
+      const requiresColor = Array.isArray(item.color_options) && item.color_options.length > 0;
+      if ((requiresSize && !selected.size) || (requiresColor && !selected.color)) {
+        alert('Vui lòng chọn đầy đủ phân loại sản phẩm');
+        return;
+      }
+
+      const variant = selectedVariant();
+      if (!variant) {
+        alert('Vui lòng chọn phân loại sản phẩm');
+        return;
+      }
+
+      const response = await fetch('/cart/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          product_id: item.id,
+          variant_id: variant.id,
+          size: selected.size,
+          color: selected.color,
+          quantity: Number(hiddenQty?.value || 1),
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        alert(payload.error || 'Không thể thêm vào giỏ hàng');
+        return;
+      }
+
+      if (window.HeaderMiniCart) {
+        await window.HeaderMiniCart.refresh(true);
+      }
+
+      if (redirectToCart) {
+        window.location.href = '/cart';
+        return;
+      }
+
+      alert(`Đã thêm vào giỏ. Tổng số lượng hiện tại: ${payload.cart_item_count}`);
+    };
+
+    addToCartForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await submitCartAction(false);
+    });
+
+    buyNowBtn?.addEventListener('click', async () => {
+      await submitCartAction(true);
+    });
+
 
     const countdownEl = detailEl.querySelector('#product-flash-countdown');
     if (countdownEl && countdownEl.dataset.endsAt) {

@@ -1,18 +1,28 @@
-<div class="cart-item">
-    <img src="{{ item.thumbnail }}" width="80">
+<article class="cart-item-card" data-cart-item data-variant-id="{{ item.variant_id }}">
+  <div class="cart-item-card__media">
+    <img src="{{ item.product_image }}" alt="{{ item.product_name }}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
+  </div>
 
-    <div class="info">
-        <h4>{{ item.name }}</h4>
-        <p>{{ item.price }} đ</p>
+  <div class="cart-item-card__content">
+    <div class="cart-item-card__main">
+      <h3>{{ item.product_name }}</h3>
+      <p class="cart-item-card__variant">Phân loại: Size {{ item.size or '-' }} · Color {{ item.color or '-' }}</p>
 
-        <form action="{{ url_for('cart.update') }}" method="POST">
-            <input type="hidden" name="product_id" value="{{ item.product_id }}">
-            <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
-            <button type="submit">Update</button>
-        </form>
-
-        <form action="{{ url_for('cart.remove', product_id=item.product_id) }}" method="POST">
-            <button type="submit">Remove</button>
-        </form>
+      <div class="cart-item-card__price-grid">
+        <div><span>Giá gốc</span><strong>₫{{ "{:,.0f}".format(item.original_price) }}</strong></div>
+        <div><span>Flash Sale 🔥</span><strong>{% if item.flash_price is not none %}₫{{ "{:,.0f}".format(item.flash_price) }}{% else %}-{% endif %}</strong></div>
+        <div><span>Promotion</span><strong>-₫{{ "{:,.0f}".format(item.promotion_discount) }}</strong></div>
+        <div><span>Số lượng</span><strong>{{ item.quantity }}</strong></div>
+      </div>
     </div>
-</div>
+
+    <div class="cart-item-card__aside">
+      <p class="cart-item-card__total-label">Thành tiền</p>
+      <p class="cart-item-card__total">₫{{ "{:,.0f}".format(item.item_total) }}</p>
+      <div class="cart-item-card__actions">
+        <button type="button" class="btn btn--outline" data-edit-cart-item="{{ item.variant_id }}">Edit</button>
+        <button type="button" class="btn btn--danger" data-delete-cart-item="{{ item.variant_id }}">Xóa</button>
+      </div>
+    </div>
+  </div>
+</article>

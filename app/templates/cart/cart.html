@@ -1,28 +1,97 @@
 {% extends "layouts/base.html" %}
-{% block title %}Cart{% endblock %}
+{% block title %}Giỏ hàng{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/cart.css') }}">
 {% endblock %}
 
 {% block content %}
+<section class="cart-page" data-cart-page>
+  <div class="cart-page__header">
+    <h1>🛒 Giỏ hàng của bạn</h1>
+    <p>Tổng số lượng sản phẩm: <strong>{{ cart_payload.cart_item_count }}</strong></p>
+  </div>
 
-<h2>Your Cart</h2>
+  {% if cart_payload.shops %}
+    <div class="cart-layout">
+      <div class="cart-items-column">
+        {% for shop in cart_payload.shops %}
+          <section class="cart-shop-card">
+            <header class="cart-shop-card__header">
+              <div>
+                <p class="cart-shop-card__label">Shop</p>
+                <h2>{{ shop.shop_name }}</h2>
+              </div>
+              <div class="cart-shop-card__meta">
+                <span>Subtotal: <strong>₫{{ "{:,.0f}".format(shop.shop_subtotal) }}</strong></span>
+                <span>Phí ship: <strong>₫{{ "{:,.0f}".format(shop.shipping_fee) }}</strong></span>
+              </div>
+            </header>
 
-{% if cart.items %}
-    <div class="cart-container">
-        <div class="cart-items">
-           {% for item in cart["items"].values() %}
+            <div class="cart-shop-items">
+              {% for item in shop.items %}
                 {% include "cart/_cart_item.html" %}
-            {% endfor %}
-        </div>
+              {% endfor %}
+            </div>
 
-        {% include "cart/_cart_summary.html" %}
+            <section class="cart-voucher-card">
+              <div>
+                <h3>Voucher của shop</h3>
+                {% if shop.voucher %}
+                  <p>{{ shop.voucher.voucher_code }} · Giảm ₫{{ "{:,.0f}".format(shop.voucher.voucher_discount) }}</p>
+                  <small>Đơn tối thiểu ₫{{ "{:,.0f}".format(shop.voucher.voucher_min_order) }}</small>
+                {% else %}
+                  <p>Chưa áp dụng voucher.</p>
+                {% endif %}
+              </div>
+
+              {% if shop.available_vouchers %}
+                <form class="voucher-form" action="{{ url_for('cart.apply_voucher') }}" method="post">
+                  <input type="hidden" name="shop_id" value="{{ shop.shop_id }}">
+                  <select name="voucher_id">
+                    {% for voucher in shop.available_vouchers %}
+                      <option value="{{ voucher.voucher_id }}">
+                        {{ voucher.voucher_code }} - giảm {{ voucher.voucher_discount }}{% if voucher.discount_type == 'percent' %}%{% else %}đ{% endif %}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn--outline">Chọn voucher</button>
+                </form>
+              {% else %}
+                <button type="button" class="btn btn--outline" disabled>Chọn voucher</button>
+              {% endif %}
+            </section>
+
+            <section class="shop-summary-card">
+              <h3>Shop Summary</h3>
+              <div class="shop-summary-card__rows">
+                <div><span>Subtotal</span><strong>₫{{ "{:,.0f}".format(shop.shop_subtotal) }}</strong></div>
+                <div><span>Voucher</span><strong>-₫{{ "{:,.0f}".format(shop.shop_voucher_discount) }}</strong></div>
+                <div><span>Shipping</span><strong>₫{{ "{:,.0f}".format(shop.shipping_fee) }}</strong></div>
+                <div class="is-total"><span>Shop Total</span><strong>₫{{ "{:,.0f}".format(shop.shop_total) }}</strong></div>
+              </div>
+            </section>
+          </section>
+        {% endfor %}
+      </div>
+
+      {% include "cart/_cart_summary.html" %}
     </div>
-{% else %}
-    <p>Your cart is empty.</p>
-{% endif %}
+  {% else %}
+    <div class="cart-empty-state">
+      <p>Giỏ hàng của bạn đang trống.</p>
+      <a class="btn btn--primary" href="{{ url_for('home.home_page') }}">Tiếp tục mua sắm</a>
+    </div>
+  {% endif %}
+</section>
 
+<div class="cart-modal" id="edit-cart-modal" hidden>
+  <div class="cart-modal__backdrop" data-close-modal></div>
+  <div class="cart-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="edit-cart-title">
+    <button type="button" class="cart-modal__close" data-close-modal>&times;</button>
+    <div id="edit-cart-modal-content"></div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
