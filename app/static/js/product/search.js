@@ -12,7 +12,13 @@
     const params = new URLSearchParams({ keyword, page: 1, per_page: 20 });
     const res = await fetch(`${endpoint}?${params.toString()}`);
     const data = await res.json();
-    resultEl.innerHTML = (data.items || []).map((item) => `<article class="product-card"><h4>${item.name}</h4><p>${item.price}</p></article>`).join('') || '<p>Không tìm thấy sản phẩm</p>';
+    resultEl.innerHTML = (data.items || []).map((item) => `
+      <article class="product-card">
+        <h4>${item.name}</h4>
+        <p>${item.price}</p>
+        ${item.shop_id ? `<a class="btn btn--outline" href="/shops/${item.shop_id}">Xem shop ${item.shop_name || ''}</a>` : ''}
+      </article>
+    `).join('') || '<p>Không tìm thấy sản phẩm</p>';
   }
 
   searchBtn?.addEventListener('click', search);

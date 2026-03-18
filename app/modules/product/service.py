@@ -11,6 +11,7 @@ from app.models.review import Review
 from app.models.shop import Shop
 from .search import full_text_query
 from sqlalchemy import inspect, text
+from app.models.shop_follow import ShopFollow
 
 class ProductService:
     @staticmethod
@@ -256,8 +257,8 @@ class ProductService:
                 "logo": ProductService._normalize_asset_url(shop.logo if shop else None),
                 "rating": float(shop.rating) if shop and shop.rating is not None else 0.0,
                 "total_products": shop_total_products,
-                "followers": 0,
-                "url": f"/shop/search?shop_id={shop.id}" if shop else "/shop",
+                "followers": ShopFollow.query.filter_by(shop_id=shop.id).count() if shop else 0,
+                "url": f"/shops/{shop.id}" if shop else "/shop",
             },
         }
         return payload

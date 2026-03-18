@@ -1,0 +1,63 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Trang shop{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/product/product_card.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/product/shop_public.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="shop-public-page" id="shop-public-page" data-shop-id="{{ shop_id }}">
+  <div class="shop-public-header" id="shop-summary-card">
+    <div class="shop-public-cover"></div>
+    <div class="shop-public-content">
+      <div class="shop-public-avatar-wrap">
+        <img id="shop-logo" class="shop-public-avatar" src="{{ url_for('static', filename='images/no-image.png') }}" alt="Shop logo">
+      </div>
+
+      <div class="shop-public-meta">
+        <p class="shop-public-breadcrumb">Trang chủ / Shop / <span id="shop-breadcrumb-name">Tên shop</span></p>
+        <h1 id="shop-name">Tên shop</h1>
+        <div class="shop-public-stats">
+          <span>⭐ <strong id="shop-rating">0.0</strong> Rating trung bình</span>
+          <span>👥 <strong id="shop-followers">0</strong> Người theo dõi</span>
+          <span>📦 <strong id="shop-products">0</strong> Tổng số sản phẩm</span>
+        </div>
+        <p id="shop-description" class="shop-public-description"></p>
+      </div>
+
+      <div class="shop-public-actions">
+        <button type="button" class="btn btn--outline" disabled>💬 Chat với shop</button>
+        <button type="button" class="btn btn--primary follow-btn" id="follow-btn" data-following="false">
+          <span class="follow-btn__icon">🤍</span>
+          <span class="follow-btn__text">+ Theo dõi shop</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="shop-menu" id="shop-menu">
+    <button type="button" class="active" data-filter="all">Tất cả sản phẩm</button>
+    <button type="button" data-filter="popular">Phổ biến</button>
+    <button type="button" data-filter="newest">Mới nhất</button>
+  </div>
+
+  <div class="sort-bar">
+    <label for="shop-sort-select">Sắp xếp theo:</label>
+    <select id="shop-sort-select">
+      <option value="popular">Phổ biến</option>
+      <option value="newest">Mới nhất</option>
+      <option value="price_asc">Giá tăng dần</option>
+      <option value="price_desc">Giá giảm dần</option>
+    </select>
+  </div>
+
+  <div class="shop-product-grid" id="shop-product-grid"></div>
+  <div class="shop-pagination" id="shop-pagination"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/product/shop_public.js') }}"></script>
+{% endblock %}

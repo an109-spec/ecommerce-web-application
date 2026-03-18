@@ -144,6 +144,8 @@ class ProductResponseDTO:
     thumbnail: str | None
     created_at: str
     updated_at: str
+    shop_id: int | None = None
+    shop_name: str | None = None
 
     @staticmethod
     def from_model(product) -> "ProductResponseDTO":
@@ -161,6 +163,8 @@ class ProductResponseDTO:
             thumbnail=product.thumbnail,
             created_at=product.created_at.isoformat(),
             updated_at=product.updated_at.isoformat(),
+            shop_id=product.shop_id,
+            shop_name=product.shop.name if getattr(product, "shop", None) else None,
         )
 
     def to_dict(self) -> dict:
@@ -175,6 +179,8 @@ class ProductResponseDTO:
             "thumbnail": self.thumbnail,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+             "shop_id": self.shop_id,
+            "shop_name": self.shop_name,
         }
 
 

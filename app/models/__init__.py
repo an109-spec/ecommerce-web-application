@@ -12,3 +12,4 @@ from .flash_sale import FlashSale
 from .shop import Shop
 from .chat import ChatRoom, Message
 from .promotion import Promotion
+from .shop_follow import ShopFollow

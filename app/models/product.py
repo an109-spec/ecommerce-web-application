@@ -68,7 +68,7 @@ class Product(BaseModel):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-
+    shop = db.relationship("app.models.shop.Shop", backref="products")
 
 class Category(BaseModel):
     __tablename__ = "categories"

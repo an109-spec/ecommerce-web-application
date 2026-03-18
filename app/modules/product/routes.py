@@ -11,7 +11,7 @@ from . import product_bp
 from .dto import ProductCreateDTO, ProductUpdateDTO, ReviewCreateDTO
 from .service import ProductService
 from .qr_service import export_qr_png, generate_product_qr_by_id
-
+from .shop_service import PublicShopService
 
 @product_bp.route("/shop", methods=["GET"])
 def shop_page():
@@ -41,6 +41,56 @@ def _parse_pagination() -> tuple[int, int]:
         raise ValidationError("per_page phải trong khoảng 1-100")
 
     return page, per_page
+@product_bp.route("/shops/<int:shop_id>", methods=["GET"])
+def public_shop_page(shop_id: int):
+    return render_template("product/shop_public.html", shop_id=shop_id)
+
+
+@product_bp.route("/shops/<int:shop_id>/summary", methods=["GET"])
+def public_shop_summary(shop_id: int):
+    try:
+        return jsonify(PublicShopService.get_shop_profile(shop_id, session.get("user_id"))), 200
+    except AppException as e:
+        return jsonify({"error": str(e)}), e.status_code
+
+
+@product_bp.route("/shops/<int:shop_id>/products", methods=["GET"])
+def public_shop_products(shop_id: int):
+    try:
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 9))
+        if page < 1:
+            raise ValidationError("page phải >= 1")
+        if limit < 1 or limit > 30:
+            raise ValidationError("limit phải trong khoảng 1-30")
+
+        return jsonify(PublicShopService.list_products(
+            shop_id,
+            filter_by=request.args.get("filter", "all"),
+            sort_by=request.args.get("sort", ""),
+            page=page,
+            limit=limit,
+        )), 200
+    except ValueError:
+        return jsonify({"error": "page/limit phải là số nguyên"}), 422
+    except AppException as e:
+        return jsonify({"error": str(e)}), e.status_code
+
+
+@product_bp.route("/shops/<int:shop_id>/follow", methods=["POST"])
+def follow_shop(shop_id: int):
+    try:
+        return jsonify(PublicShopService.follow(shop_id, session.get("user_id"))), 200
+    except AppException as e:
+        return jsonify({"error": str(e)}), e.status_code
+
+
+@product_bp.route("/shops/<int:shop_id>/follow", methods=["DELETE"])
+def unfollow_shop(shop_id: int):
+    try:
+        return jsonify(PublicShopService.unfollow(shop_id, session.get("user_id"))), 200
+    except AppException as e:
+        return jsonify({"error": str(e)}), e.status_code
 
 
 @product_bp.route("/products", methods=["GET"])
