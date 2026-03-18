@@ -123,7 +123,7 @@ ${item.vouchers && item.vouchers.length ? `
               <button type="button" id="qty-minus">-</button>
               <input type="number" id="detail-quantity" min="1" max="${item.stock || 1}" value="1">
               <button type="button" id="qty-plus">+</button>
-              <small>Tồn kho: ${item.stock || 0}</small>
+              <span class="stock-text">Kho: ${item.stock || 0}</span>
             </div>
             <div class="product-actions">
               <form action="/cart/add" method="post">
@@ -141,20 +141,42 @@ ${item.vouchers && item.vouchers.length ? `
         <h3>Thông tin shop</h3>
         <div class="shop-info-grid">
           <img src="${shopLogo}" alt="${shop.name || 'Shop'}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
-          <div>
-            <p><strong>${shop.name || 'OneShop'}</strong></p>
-            <p>Đánh giá shop: ${Number(shop.rating || 0).toFixed(1)}</p>
-            <p>Tổng số sản phẩm: ${shop.total_products || 0}</p>
-            <p>Người theo dõi: ${shop.followers || 0}</p>
-            <a class="btn btn--outline" href="${shop.url || '/shop'}">Xem shop</a>
-          </div>
+              <div class="shop-info-content">
+                <p class="shop-name">${shop.name || 'OneShop'}</p>
+
+                <div class="shop-stats">
+                  <div><span>Đánh giá</span><b>${Number(shop.rating || 0).toFixed(1)}</b></div>
+                  <div><span>Sản phẩm</span><b>${shop.total_products || 0}</b></div>
+                  <div><span>Follower</span><b>${shop.followers || 0}</b></div>
+                </div>
+      <a class="btn btn--outline shop-btn" href="${shop.url || '/shop'}">Xem shop</a>
+    </div>
         </div>
       </section>
 
-      <section class="product-meta-block">
-        <h3>Chi tiết sản phẩm</h3>
-        <p>Danh mục: ${(item.categories || []).join(', ') || 'Đang cập nhật'}</p>
-        <p>Tồn kho: ${item.stock || 0}</p>
+    <section class="product-meta-block">
+      <h3>Chi tiết sản phẩm</h3>
+
+      <div class="meta-table">
+        <div class="meta-row">
+          <span>Danh mục</span>
+          <div>${(item.categories || []).join(', ') || 'Đang cập nhật'}</div>
+        </div>
+
+        <div class="meta-row">
+          <span>Kho</span>
+          <div>${item.stock || 0}</div>
+        </div>
+      </div>
+    </section>
+
+      <section class="product-description-block">
+        <h3>Mô tả sản phẩm</h3>
+        <div class="product-description">
+          ${(item.description || 'Chưa có mô tả')
+            .replace(/\n/g, '<br>')
+          }
+        </div>
       </section>
     `;
     let selected = {
@@ -277,8 +299,16 @@ function renderRelated(items) {
         <div class="product-card__image-wrap">
           <img src="${img}" alt="${item.name}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
         </div>
-        <h4>${item.name}</h4>
-        <p>${fmtCurrency(item.price)}</p>
+        <h4 class="product-card__title">${item.name}</h4>
+        <div class="product-card__meta">
+          <span class="rating">
+            ${toStars(item.rating)} (${item.reviews_count || 0})
+          </span>
+          <span class="sold">
+            Đã bán ${item.sold || 0}
+          </span>
+        </div>
+        <p class="product-card__price">${fmtCurrency(item.price)}</p>
       </a>
     `;
   }).join('');
