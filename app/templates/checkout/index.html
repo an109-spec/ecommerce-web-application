@@ -1,0 +1,29 @@
+{% extends "layouts/base.html" %}
+{% block title %}Thanh toán{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/checkout.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="checkout-page" data-checkout-page>
+  <div class="checkout-page__header">
+    <a href="{{ url_for('cart.view_cart') }}" class="checkout-page__back">← Thanh toán</a>
+  </div>
+
+  <div id="checkout-root" data-checkout-root></div>
+
+  {% if not checkout_payload or not checkout_payload.shops %}
+    <div class="checkout-empty-state" data-checkout-empty>
+      <p>Chưa có dữ liệu checkout. Vui lòng chọn sản phẩm để tiếp tục.</p>
+      <a href="{{ url_for('cart.view_cart') }}" class="btn btn--primary">Quay lại giỏ hàng</a>
+    </div>
+  {% endif %}
+</section>
+
+<script id="checkout-initial-data" type="application/json">{{ checkout_payload|tojson if checkout_payload else 'null' }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
+{% endblock %}

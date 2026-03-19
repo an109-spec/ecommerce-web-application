@@ -90,19 +90,25 @@
     <h2>Flash Sale</h2>
     <div id="flash-countdown" data-ends-at="{{ flash_sale.ends_at_iso or '' }}">00:00:00</div>
   </div>
-  <div class="product-grid four-cols">
-    {% for item in flash_sale["items"] %}
-      <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
-        <div class="product-card__image-wrap">
-          <img src="{{ item.image or '/static/images/no-image.png' }}" alt="{{ item.name }}">
-          {% if item.discount_percent %}<span class="flash-badge">-{{ item.discount_percent }}%</span>{% endif %}
-        </div>
-        <h3>{{ item.name }}</h3>
-        <p class="price">₫{{ '{:,.0f}'.format(item.sale_price if item.sale_price is not none else item.price) }}</p>
-        <small>Đã bán {{ item.sold }}</small>
-      </a>
-    {% endfor %}
+<div class="flash-sale-wrapper">
+  <button class="flash-nav flash-prev">&lt;</button>
+  <div class="flash-sale-container">
+    <div class="flash-sale-scroll">
+      {% for item in flash_sale["items"] %}
+        <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
+          <div class="product-card__image-wrap">
+            <img src="{{ item.image or '/static/images/no-image.png' }}" alt="{{ item.name }}">
+            {% if item.discount_percent %}<span class="flash-badge">-{{ item.discount_percent }}%</span>{% endif %}
+          </div>
+          <h3>{{ item.name }}</h3>
+          <p class="price">₫{{ '{:,.0f}'.format(item.sale_price if item.sale_price is not none else item.price) }}</p>
+          <small>Đã bán {{ item.sold }}</small>
+        </a>
+      {% endfor %}
+    </div>
   </div>
+  <button class="flash-nav flash-next">&gt;</button>
+</div>
 </section>
 
 <section class="home-section">
@@ -121,9 +127,12 @@
   </div>
 </section>
 
-<section class="home-section" id="recommended-products">
-  <h2>Sản phẩm gợi ý</h2>
-  <div class="product-grid three-cols">
+<section class="home-section recommended-products" id="recommended-products">
+  <div class="section-title-row">
+    <h2>Sản phẩm gợi ý</h2>
+    <div class="title-underline"></div>
+  </div>
+  <div class="recommended-scroll">
     {% for item in recommended_items %}
       <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
         <div class="product-card__image-wrap">

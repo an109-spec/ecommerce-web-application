@@ -8,7 +8,7 @@ from app.extensions.jwt import jwt
 from app.extensions.socketio import socketio
 from flask_migrate import Migrate
 from flask_mail import Mail
-
+from app.modules.checkout import checkout_bp
 from app.modules.auth import auth_bp
 from app.modules.product import product_bp
 from app.modules.cart import cart_bp
@@ -87,6 +87,7 @@ def register_blueprints(app):
     app.register_blueprint(product_bp)
     app.register_blueprint(cart_bp)
     app.register_blueprint(order_bp)
+    app.register_blueprint(checkout_bp)
     app.register_blueprint(payment_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(promotion_bp)

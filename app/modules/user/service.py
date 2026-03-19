@@ -276,7 +276,25 @@ class UserService:
         return avatar_path
 
     @staticmethod
-    def add_address(user_id: int, payload: dict) -> list[dict]:
+    def get_addresses(user_id: int) -> list[dict]:
+        user = UserService._get_user(user_id)
+        profile = UserProfile.query.filter_by(user_id=user.id).first()
+        return UserService._load_addresses(profile.address if profile else None)
+
+    @staticmethod
+    def get_default_address(user_id: int) -> dict | None:
+        addresses = UserService.get_addresses(user_id)
+        return next((item for item in addresses if item.get("is_default")), None)
+
+    @staticmethod
+    def get_address_by_id(user_id: int, address_id: str) -> dict:
+        address = next((item for item in UserService.get_addresses(user_id) if item["id"] == str(address_id)), None)
+        if not address:
+            raise NotFoundError("Không tìm thấy địa chỉ")
+        return address
+
+    @staticmethod
+    def upsert_address(user_id: int, payload: dict) -> list[dict]:
         user = UserService._get_user(user_id)
         profile = UserProfile.query.filter_by(user_id=user.id).first()
         if profile is None:
@@ -289,28 +307,51 @@ class UserService:
                 raise ValidationError("Vui lòng nhập đầy đủ thông tin địa chỉ")
 
         addresses = UserService._load_addresses(profile.address)
-        new_address = {
-            "id": uuid4().hex,
-            "full_name": str(payload.get("full_name")).strip(),
-            "phone": str(payload.get("phone")).strip(),
-            "city": str(payload.get("city")).strip(),
-            "district": str(payload.get("district")).strip(),
-            "ward": str(payload.get("ward")).strip(),
-            "address_line": str(payload.get("address_line")).strip(),
-            "is_default": bool(payload.get("is_default", False)),
-        }
+        address_id = str(payload.get("id") or payload.get("address_id") or "").strip()
+        is_default = bool(payload.get("is_default", False))
+        target = None
+        if address_id:
+            target = next((item for item in addresses if item["id"] == address_id), None)
 
+        if target is None:
+            target = {
+                "id": address_id or uuid4().hex,
+                "full_name": "",
+                "phone": "",
+                "city": "",
+                "district": "",
+                "ward": "",
+                "address_line": "",
+                "is_default": False,
+            }
+            addresses.append(target)
+
+
+        target.update(
+            {
+                "full_name": str(payload.get("full_name") or "").strip(),
+                "phone": str(payload.get("phone") or "").strip(),
+                "city": str(payload.get("city") or "").strip(),
+                "district": str(payload.get("district") or "").strip(),
+                "ward": str(payload.get("ward") or "").strip(),
+                "address_line": str(payload.get("address_line") or "").strip(),
+                "is_default": is_default,
+            }
+        )
         if not addresses:
-            new_address["is_default"] = True
-
-        if new_address["is_default"]:
+            target["is_default"] = True
+        if target["is_default"]:
             for item in addresses:
-                item["is_default"] = False
+                item["is_default"] = item["id"] == target["id"]
+        elif not any(item.get("is_default") for item in addresses):
+            addresses[0]["is_default"] = True
 
-        addresses.append(new_address)
         UserService._save_addresses(profile, addresses)
         db.session.commit()
         return addresses
+    @staticmethod
+    def add_address(user_id: int, payload: dict) -> list[dict]:
+        return UserService.upsert_address(user_id, payload)
 
     @staticmethod
     def delete_address(user_id: int, address_id: str) -> list[dict]:

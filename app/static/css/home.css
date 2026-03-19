@@ -68,7 +68,7 @@
   font-weight: 700;
 }
 
-.product-card img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
+.product-card img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 6px; margin-bottom: 8px; height: 150px;  object-fit: cover;}
 .product-card h3 { font-size: 14px; margin-bottom: 8px; min-height: 38px; }
 .product-card .price { color: var(--primary); font-weight: 700; margin-bottom: 6px; }
 
@@ -94,4 +94,163 @@
   .three-cols { grid-template-columns: repeat(2, 1fr); }
   .home-search-header__inner { gap: 10px; align-items: stretch; flex-direction: column; }
   .search-form { margin: 0; }
+}
+
+/* Flash Sale scroll */
+.flash-sale-container {
+  overflow-x: hidden;
+  position: relative;
+  margin-top: 12px;
+  padding-bottom: 10px;
+  flex: 1;
+}
+
+.flash-sale-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 4px;
+  padding: 8px 0;
+}
+
+.flash-sale-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.flash-sale-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 3px;
+}
+
+.flash-sale-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+/* Giữ product-card chuẩn */
+.flash-sale-scroll .product-card {
+  min-width: 150px; /* width cho từng card */
+  flex: 0 0 auto;
+}
+
+/* Countdown đẹp hơn */
+#flash-countdown {
+  font-weight: 700;
+  color: var(--primary);
+  background: #fff3f0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.flash-sale-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.flash-nav {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.flash-nav:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.flash-nav.flash-prev {
+  margin-right: 4px;
+}
+
+.flash-nav.flash-next {
+  margin-left: 4px;
+}
+.flash-sale-scroll .product-card {
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.flash-sale-scroll .product-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  z-index: 5; /* để hover nổi lên trên các card khác */
+}
+
+/* Sản phẩm gợi ý kiểu Shopee */
+.recommended-products .section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.recommended-products .section-title-row h2 {
+  color: #d84527;
+  text-transform: uppercase;
+  font-size: 20px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.recommended-products .title-underline {
+  flex-grow: 1;
+  height: 3px;
+  background: #d84527;
+  margin-left: 8px;
+  border-radius: 2px;
+  align-self: flex-end;
+}
+
+/* Scroll container */
+.recommended-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 8px 0;
+}
+
+/* Hide scrollbar style (optional) */
+.recommended-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.recommended-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 3px;
+}
+.recommended-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+/* Product card width: 1 hàng 5 sản phẩm desktop */
+.recommended-scroll .product-card {
+  min-width: 180px; /* Giảm chiều rộng mỗi card */
+  flex: 0 0 auto;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.recommended-scroll .product-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  z-index: 5;
+}
+
+@media (max-width: 1024px) {
+  .recommended-scroll .product-card {
+    min-width: 150px; /* tablet 3 sản phẩm */
+  }
+}
+
+@media (max-width: 768px) {
+  .recommended-scroll .product-card {
+    min-width: 120px; /* mobile 2 sản phẩm */
+  }
 }

@@ -121,6 +121,28 @@ def purchase_history():
     except AppException as e:
         return jsonify({"error": str(e)}), e.status_code
     
+@user_bp.route("/default-address", methods=["GET"])
+def default_address():
+    try:
+        user_id = _resolve_user_id()
+        address = UserService.get_default_address(user_id)
+        return jsonify({"address": address}), 200
+    except AppException as e:
+        return jsonify({"error": str(e)}), e.status_code
+
+
+@user_bp.route("/address", methods=["PUT"])
+def update_address():
+    try:
+        user_id = _resolve_user_id()
+        payload = request.get_json(silent=True) or {}
+        addresses = UserService.upsert_address(user_id, payload)
+        return jsonify({"addresses": addresses}), 200
+    except AppException as e:
+        return jsonify({"error": str(e)}), e.status_code
+
+
+
 @user_bp.route("/address", methods=["POST"])
 def add_address():
     try:

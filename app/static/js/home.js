@@ -31,3 +31,19 @@
   render();
   const timer = setInterval(render, 1000);
 })();
+(function () {
+  const scrollContainer = document.querySelector('.flash-sale-scroll');
+  const prevBtn = document.querySelector('.flash-prev');
+  const nextBtn = document.querySelector('.flash-next');
+  if (!scrollContainer || !prevBtn || !nextBtn) return;
+
+  const scrollAmount = 180; // khoảng cách scroll mỗi click
+
+  prevBtn.addEventListener('click', () => {
+    scrollContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+  });
+
+  nextBtn.addEventListener('click', () => {
+    scrollContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  });
+})();

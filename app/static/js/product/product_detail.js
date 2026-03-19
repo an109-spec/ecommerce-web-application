@@ -323,7 +323,27 @@ function updateVariant() {
       }
 
       if (redirectToCart) {
-        window.location.href = '/cart';
+        const checkoutResponse = await fetch('/checkout/init', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            source: 'buy_now',
+            items: [{
+              product_id: item.id,
+              variant_id: variant.id,
+              quantity: Number(hiddenQty?.value || 1),
+            }],
+          }),
+        });
+        const checkoutPayload = await checkoutResponse.json();
+        if (!checkoutResponse.ok) {
+          alert(checkoutPayload.error || 'Không thể khởi tạo checkout');
+          return;
+        }
+        window.location.href = '/checkout';
         return;
       }
 
