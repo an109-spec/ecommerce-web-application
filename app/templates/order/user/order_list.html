@@ -5,29 +5,38 @@
 
 <h2>Đơn hàng của tôi</h2>
 
+<div class="order-tabs">
+    {% set tabs = [("ALL","Tất cả"),("PENDING","Chờ xác nhận"),("CONFIRMED","Đã xác nhận"),("PREPARING","Đang chuẩn bị"),("SHIPPING","Đang giao"),("DELIVERED","Đã giao"),("CANCELLED","Đã hủy")] %}
+    {% for value, label in tabs %}
+    <a href="{{ url_for('order.user_order_list', status=value) }}" class="order-tab {% if status == value %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
 {% if orders %}
 <table class="order-table">
     <thead>
         <tr>
+            <th>Shop</th>
             <th>Mã đơn</th>
+            <th>Ngày đặt</th>
             <th>Tổng tiền</th>
             <th>Trạng thái</th>
-            <th>Ngày tạo</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         {% for order in orders %}
         <tr>
+            <td>{{ order.items[0].product.shop.name if order.items and order.items[0].product and order.items[0].product.shop else "Shop" }}</td>
             <td>{{ order.order_code }}</td>
-            <td>{{ "{:,.0f}".format(order.total_amount) }}đ</td>
+            <td>{{ order.created_at.strftime("%d/%m/%Y %H:%M") if order.created_at else "" }}</td>
+            <td>{{ "{:,.0f}".format(order.total_price or 0) }}đ</td>
             <td>
                 {% include "order/components/order_status_badge.html" %}
             </td>
-            <td>{{ order.created_at.strftime("%d/%m/%Y") }}</td>
             <td>
                 <a href="{{ url_for('order.user_order_detail', order_id=order.id) }}">
-                    Xem
+                    Xem chi tiết
                 </a>
             </td>
         </tr>

@@ -1,7 +1,7 @@
 <ul class="timeline">
     {% for step in timeline %}
     <li class="{% if step.active %}active{% endif %}">
-        <span>{{ step.label }}</span>
+        <span>{{ "●" if step.active else "○" }} {{ step.label }}</span>
         <small>{{ step.time }}</small>
     </li>
     {% endfor %}

@@ -10,10 +10,15 @@
     <tbody>
         {% for item in order.items %}
         <tr>
-            <td>{{ item.product_name }}</td>
-            <td>{{ item.price }}</td>
+            <td>
+                {% if item.product_thumbnail %}
+                <img src="{{ item.product_thumbnail }}" alt="{{ item.product_name }}" style="width:40px;height:40px;object-fit:cover;">
+                {% endif %}
+                {{ item.product_name or ("Sản phẩm #" ~ item.product_id) }}
+            </td>
+            <td>{{ "{:,.0f}".format(item.price or 0) }}đ</td>
             <td>{{ item.quantity }}</td>
-            <td>{{ item.total }}</td>
+            <td>{{ "{:,.0f}".format(item.subtotal or 0) }}đ</td>
         </tr>
         {% endfor %}
     </tbody>

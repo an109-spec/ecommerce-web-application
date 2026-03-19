@@ -3,9 +3,50 @@
 
 <h2>Chi tiết đơn hàng #{{ order.order_code }}</h2>
 
+<h3>Thông tin khách hàng</h3>
+<p>{{ customer.name }}</p>
+<p>{{ customer.phone }}</p>
+<p>{{ customer.address }}</p>
+
+<h3>Danh sách sản phẩm</h3>
+
 {% include "order/components/order_item_table.html" %}
+
+<h3>Chi tiết thanh toán</h3>
+<p>Tổng tiền hàng: {{ "{:,.0f}".format(order.subtotal or order.total_price or 0) }}đ</p>
+<p>Phí vận chuyển: {{ "{:,.0f}".format(order.shipping_fee or 0) }}đ</p>
+<p>Tổng thanh toán: {{ "{:,.0f}".format(order.total_price or 0) }}đ</p>
+
 
 <h3>Tiến trình đơn hàng</h3>
 {% include "order/components/order_timeline.html" %}
+
+{% if can_cancel %}
+<form method="post" action="{{ url_for('order.buyer_cancel_order', order_id=order.id) }}">
+    <button type="submit">Hủy đơn</button>
+</form>
+{% elif order.status.value not in ["CANCELLED", "DELIVERED"] %}
+<p><strong>Không thể hủy đơn</strong></p>
+{% endif %}
+
+<h3>Đánh giá sản phẩm</h3>
+{% if show_review_form %}
+<form method="post" action="{{ url_for('order.buyer_submit_review', order_id=order.id) }}">
+    {% for item in order.items %}
+    <div style="margin-bottom: 16px;">
+        <p>{{ item.product_name }}</p>
+        <label>Số sao</label>
+        <input name="rating_{{ item.id }}" type="number" min="1" max="5" required>
+        <label>Nhận xét</label>
+        <textarea name="comment_{{ item.id }}"></textarea>
+    </div>
+    {% endfor %}
+    <button type="submit">Gửi đánh giá</button>
+</form>
+{% elif order.status.value != "DELIVERED" %}
+<p>Chưa thể đánh giá</p>
+{% else %}
+<p>Bạn đã đánh giá đơn hàng này.</p>
+{% endif %}
 
 {% endblock %}

@@ -2,14 +2,45 @@
 
 {% block seller_content %}
 <h2>Quản lý đơn hàng</h2>
-<p>Bộ lọc: All | Pending | Preparing | Shipping | Delivered | Cancelled</p>
+<div class="order-tabs">
+  {% set tabs = [("ALL","Tất cả"),("PENDING","Chờ xác nhận"),("CONFIRMED","Đã xác nhận"),("PREPARING","Đang chuẩn bị"),("SHIPPING","Đang giao"),("DELIVERED","Đã giao"),("CANCELLED","Đã hủy")] %}
+  {% for value, label in tabs %}
+    <a href="{{ url_for('seller.orders_page', status=value) }}" class="order-tab {% if status == value %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
 <table>
-    <tr><th>OrderID</th><th>Tổng</th><th>Trạng thái</th></tr>
+    <tr><th>Mã đơn</th><th>Tên khách</th><th>Sản phẩm</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th><th>Hành động</th></tr>
   {% for order in orders %}
   <tr>
-    <td>#{{ order.id }}</td>
-    <td>{{ order.total_price }}</td>
+    <td>#{{ order.order_code or order.id }}</td>
+    <td>{{ order.user_id }}</td>
+    <td>{{ order.items|length }}</td>
+    <td>{{ order.created_at.strftime("%d/%m/%Y %H:%M") if order.created_at else "" }}</td>
+    <td>{{ "{:,.0f}".format(order.total_price or 0) }}đ</td>
     <td>{{ order.status.value }}</td>
+    <td>
+      {% if order.status.value == "PENDING" %}
+      <form method="post" action="{{ url_for('order.seller_order_action', order_id=order.id) }}" style="display:inline;">
+        <button type="submit" name="action" value="CONFIRM">Xác nhận</button>
+        <button type="submit" name="action" value="CANCEL">Hủy</button>
+      </form>
+      {% elif order.status.value == "CONFIRMED" %}
+      <form method="post" action="{{ url_for('order.seller_order_action', order_id=order.id) }}" style="display:inline;">
+        <button type="submit" name="action" value="START_PREPARING">Bắt đầu chuẩn bị</button>
+        <button type="submit" name="action" value="CANCEL">Hủy</button>
+      </form>
+      {% elif order.status.value == "PREPARING" %}
+      <form method="post" action="{{ url_for('order.seller_order_action', order_id=order.id) }}" style="display:inline;">
+        <button type="submit" name="action" value="READY_TO_SHIP">Chuẩn bị xong</button>
+        <button type="submit" name="action" value="CANCEL">Hủy</button>
+      </form>
+      {% elif order.status.value == "SHIPPING" %}
+      <form method="post" action="{{ url_for('order.seller_order_action', order_id=order.id) }}" style="display:inline;">
+        <button type="submit" name="action" value="MARK_DELIVERED">Đã giao</button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('order.seller_order_detail', order_id=order.id) }}">Xem chi tiết</a>
+    </td>
   </tr>
   {% endfor %}
 </table>

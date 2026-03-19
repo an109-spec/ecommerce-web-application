@@ -1,4 +1,4 @@
-from app.common.exceptions import ConflictError, NotFoundError
+from app.common.exceptions import ConflictError, NotFoundError, ValidationError, ForbiddenError
 from app.extensions.db import db
 
 from .dto import ProductCreateDTO, ProductResponseDTO, ProductUpdateDTO, ReviewCreateDTO
@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from app.models.flash_sale import FlashSale
 from app.models.review import Review
 from app.models.shop import Shop
+from app.models.order import Order, OrderItem
+from app.core.enums.order_status import OrderStatus
 from .search import full_text_query
 from sqlalchemy import inspect, text
 from app.models.shop_follow import ShopFollow
@@ -291,14 +293,50 @@ class ProductService:
         product = Product.query.filter(Product.id == product_id, Product.status == ProductStatus.ACTIVE).first()
         if not product:
             raise NotFoundError("Không tìm thấy sản phẩm")
+        if data.user_id != user_id:
+            raise ForbiddenError("Không có quyền đánh giá")
+        if not data.order_id or not data.order_item_id:
+            raise ValidationError("Thiếu thông tin đơn hàng để đánh giá")
+
+        order = Order.query.filter_by(id=data.order_id, user_id=user_id).first()
+        if not order:
+            raise NotFoundError("Không tìm thấy đơn hàng")
+        if order.status != OrderStatus.DELIVERED:
+            raise ValidationError("Chỉ có thể đánh giá khi đơn đã giao")
+
+        order_item = OrderItem.query.filter_by(id=data.order_item_id, order_id=order.id, product_id=product_id).first()
+        if not order_item:
+            raise ValidationError("Sản phẩm không thuộc đơn hàng")
+
+        existed = Review.query.filter_by(user_id=user_id, order_item_id=order_item.id).first()
+        if existed:
+            raise ValidationError("Bạn đã đánh giá sản phẩm này trong đơn hàng")
+
+        shop = Shop.query.get(product.shop_id) if product.shop_id else None
+        old_count = 0
+        old_avg = 0.0
+        if shop:
+            old_count = len(Review.query.join(Product, Product.id == Review.product_id).filter(Product.shop_id == shop.id).all())
+            old_avg = float(shop.rating or 0)
 
         review = Review(
             product_id=product_id,
             user_id=user_id,
             rating=data.rating,
             comment=data.comment,
+            order_id=order.id,
+            order_item_id=order_item.id,
+            size=data.size,
+            color=data.color,
+            media_url=data.media_url,
         )
         db.session.add(review)
+
+        # Cập nhật rating shop theo công thức cộng dồn
+        if shop:
+            new_count = old_count + 1
+            shop.rating = round(((old_avg * old_count) + data.rating) / new_count, 2)
+
         db.session.commit()
 
         return {
@@ -307,6 +345,9 @@ class ProductService:
             "user_id": review.user_id,
             "rating": review.rating,
             "comment": review.comment,
+            "size": review.size,
+            "color": review.color,
+            "media_url": review.media_url,
             "created_at": review.created_at.isoformat(),
         }
 
@@ -324,6 +365,9 @@ class ProductService:
                 "user_id": review.user_id,
                 "rating": review.rating,
                 "comment": review.comment,
+                "size": review.size,
+                "color": review.color,
+                "media_url": review.media_url,
                 "created_at": review.created_at.isoformat(),
             }
             for review in reviews

@@ -158,6 +158,8 @@ class CheckoutService:
         order = Order(
             user_id=user_id,
             total_price=Decimal(str(payload["total_raw"])),
+            subtotal=Decimal(str(payload["subtotal_raw"])),
+            shipping_fee=Decimal(str(payload["shipping_total_raw"])),
             status=OrderStatus.PENDING,
             payment_method=payment_method,
         )
@@ -189,6 +191,8 @@ class CheckoutService:
                         price=price,
                         quantity=quantity,
                         subtotal=subtotal,
+                        product_name=variant.product.name or "",
+                        product_thumbnail=variant.image_url or variant.product.thumbnail,
                     )
                 )
                 variant.stock = int(variant.stock or 0) - quantity

@@ -2,7 +2,7 @@ from app.common.exceptions import ValidationError
 from app.extensions.db import db
 from app.models.order import OrderTracking
 from .status import OrderStatus
-
+from datetime import datetime, timezone
 
 VALID_TRANSITIONS = {
     OrderStatus.PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
@@ -26,7 +26,15 @@ def apply_transition(order, new_status: OrderStatus):
     validate_transition(order.status, new_status)
 
     order.status = new_status
-
+    now = datetime.now(timezone.utc)
+    if new_status == OrderStatus.CONFIRMED:
+        order.confirmed_at = order.confirmed_at or now
+    if new_status == OrderStatus.PREPARING:
+        order.preparing_at = order.preparing_at or now
+    if new_status == OrderStatus.SHIPPING:
+        order.shipping_at = order.shipping_at or now
+    if new_status == OrderStatus.DELIVERED:
+        order.delivered_at = order.delivered_at or now
     tracking = OrderTracking(
         order_id=order.id,
         status=new_status

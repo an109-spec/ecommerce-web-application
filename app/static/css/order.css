@@ -50,3 +50,24 @@
 .timeline li.active::before {
     background: #22c55e;
 }
+
+.order-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.order-tab {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    text-decoration: none;
+    color: #444;
+}
+
+.order-tab.active {
+    background: #ee4d2d;
+    border-color: #ee4d2d;
+    color: #fff;
+}

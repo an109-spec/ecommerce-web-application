@@ -83,18 +83,34 @@ def remove(variant_id: int):
         return jsonify(CartService.build_cart_payload()), 200
     return redirect(url_for("cart.view_cart"))
 
+from app.common.exceptions import AppException   # thêm dòng này trên đầu file
+
 @cart_bp.route("/voucher/apply", methods=["POST"])
 def apply_voucher():
     payload = request.get_json(silent=True) or request.form
     try:
-        response = CartService.apply_voucher(int(payload.get("shop_id")), int(payload.get("voucher_id")))
+        response = CartService.apply_voucher(
+            int(payload.get("shop_id")),
+            int(payload.get("voucher_id"))
+        )
+
         if _wants_json_response():
             return jsonify(response), 200
         return redirect(url_for("cart.view_cart"))
+
+    except AppException as exc:   # ✅ BẮT ĐÚNG LOẠI LỖI
+        if _wants_json_response():
+            return jsonify({"error": str(exc)}), exc.status_code
+        return redirect(url_for("cart.view_cart"))
+
     except (TypeError, ValueError) as exc:
         if _wants_json_response():
             return jsonify({"error": str(exc)}), 422
         raise
+
+    except Exception as e:
+        print("ERROR APPLY VOUCHER:", e)
+        return jsonify({"error": "Lỗi server"}), 500
 
 @cart_bp.route("/clear", methods=["POST"])
 def clear():

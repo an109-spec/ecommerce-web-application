@@ -9,7 +9,7 @@ from app.models.flash_sale import FlashSale
 from app.models.product import Product, ProductVariant
 from app.models.promotion import Promotion
 from app.models.voucher import Voucher
-
+from app.common.exceptions import AppException
 
 class CartService:
     SESSION_KEY = "cart"
@@ -138,7 +138,7 @@ class CartService:
 
         subtotal = Decimal(str(shop_payload["shop_subtotal_raw"]))
         if subtotal < Decimal(str(voucher.min_order_value or 0)):
-            raise ValueError("Chưa đạt giá trị đơn tối thiểu để áp dụng voucher")
+            raise AppException("Chưa đạt giá trị đơn tối thiểu để áp dụng voucher", status_code=400)
 
         cart["applied_vouchers"][str(shop_id)] = int(voucher.id)
         CartService._mark_session_dirty()

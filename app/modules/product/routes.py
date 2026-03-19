@@ -168,7 +168,7 @@ def add_review(id: int):
             raise ValidationError("Request must be JSON")
 
         payload = request.get_json() or {}
-        fallback_user_id = request.headers.get("X-User-Id")
+        fallback_user_id = session.get("user_id") or request.headers.get("X-User-Id")
         dto = ReviewCreateDTO.from_dict(payload, fallback_user_id=fallback_user_id)
         result = ProductService.add_review(id, dto.user_id, dto)
         return jsonify(result), 201

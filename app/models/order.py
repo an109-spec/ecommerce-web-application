@@ -31,6 +31,16 @@ class Order(BaseModel):
         nullable=False
     )
 
+    subtotal = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    shipping_fee = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    cancelled_by = db.Column(db.String(20), nullable=True)
+    cancel_reason = db.Column(db.String(255), nullable=True)
+    cancelled_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    confirmed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    preparing_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    shipping_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    delivered_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
     items = db.relationship(
         "OrderItem",
         backref="order",
@@ -69,6 +79,9 @@ class OrderItem(BaseModel):
         db.Numeric(12, 2),
         nullable=False
     )
+
+    product_name = db.Column(db.String(255), nullable=False, default="")
+    product_thumbnail = db.Column(db.String(500), nullable=True)
 
 class OrderTracking(BaseModel):
     __tablename__ = "order_tracking"

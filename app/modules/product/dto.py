@@ -189,6 +189,12 @@ class ReviewCreateDTO:
     user_id: int
     rating: int
     comment: str | None
+    order_id: int | None = None
+    order_item_id: int | None = None
+    size: str | None = None
+    color: str | None = None
+    media_url: str | None = None
+
 
     @staticmethod
     def from_dict(data: dict, fallback_user_id: int | None = None) -> "ReviewCreateDTO":
@@ -212,11 +218,25 @@ class ReviewCreateDTO:
         if comment is not None:
             comment = str(comment).strip()
 
-        return ReviewCreateDTO(user_id=user_id, rating=rating, comment=comment)
+        return ReviewCreateDTO(
+            user_id=user_id,
+            rating=rating,
+            comment=comment,
+            order_id=int(data["order_id"]) if data.get("order_id") else None,
+            order_item_id=int(data["order_item_id"]) if data.get("order_item_id") else None,
+            size=(str(data.get("size")).strip() if data.get("size") else None),
+            color=(str(data.get("color")).strip() if data.get("color") else None),
+            media_url=(str(data.get("media_url")).strip() if data.get("media_url") else None),
+        )
 
     def to_dict(self) -> dict:
         return {
             "user_id": self.user_id,
             "rating": self.rating,
             "comment": self.comment,
+            "order_id": self.order_id,
+            "order_item_id": self.order_item_id,
+            "size": self.size,
+            "color": self.color,
+            "media_url": self.media_url,
         }

@@ -49,17 +49,29 @@ def apply_voucher():
     try:
         user_id = _resolve_user_id()
         payload = request.get_json(silent=True) or {}
+
+        shop_id = payload.get("shop_id")
+        voucher_id = payload.get("voucher_id")
+        voucher_code = payload.get("voucher_code")
+
+        # ✅ validate trước
+        if not shop_id:
+            return jsonify({"error": "Thiếu shop_id"}), 422
+
         data = CheckoutService.apply_voucher(
             user_id,
-            int(payload.get("shop_id")),
-            voucher_id=int(payload["voucher_id"]) if payload.get("voucher_id") else None,
-            voucher_code=payload.get("voucher_code"),
+            int(shop_id),
+            voucher_id=int(voucher_id) if voucher_id else None,
+            voucher_code=voucher_code,
         )
+
         return jsonify(data), 200
-    except (TypeError, ValueError):
-        return jsonify({"error": "Dữ liệu voucher không hợp lệ"}), 422
+
     except AppException as exc:
         return jsonify({"error": str(exc)}), exc.status_code
+
+    except (TypeError, ValueError):
+        return jsonify({"error": "Dữ liệu voucher không hợp lệ"}), 422
 
 
 @checkout_bp.route("/shipping-method", methods=["POST"])
@@ -103,5 +115,10 @@ def confirm_checkout():
         user_id = _resolve_user_id()
         data = CheckoutService.confirm_checkout(user_id)
         return jsonify(data), 200
+
     except AppException as exc:
         return jsonify({"error": str(exc)}), exc.status_code
+
+    except Exception as e:
+        print("ERROR CONFIRM CHECKOUT:", e)  
+        return jsonify({"error": "Lỗi server"}), 500

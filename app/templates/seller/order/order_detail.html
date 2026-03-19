@@ -4,29 +4,44 @@
 
 <h2>Chi tiết đơn hàng</h2>
 
-<p>ID: {{ order.id }}</p>
-
-<p>Khách: {{ order.user_id }}</p>
-
-<p>Tổng tiền: {{ order.total }}</p>
-
-<p>Trạng thái: {{ order.status }}</p>
+<p>Mã đơn: #{{ order.order_code or order.id }}</p>
+<p>Khách: {{ customer.name }} - {{ customer.phone }}</p>
+<p>Địa chỉ: {{ customer.address }}</p>
+<p>Tổng tiền: {{ "{:,.0f}".format(order.total_price or 0) }}đ</p>
+<p>Trạng thái: {{ order.status.value }}</p>
 
 <h3>Sản phẩm</h3>
 
 <ul>
 
 {% for item in order.items %}
-
-<li>
-
-{{ item.product.name }}
-x {{ item.quantity }}
+<li>{{ item.product_name or ('Sản phẩm #' ~ item.product_id) }} x {{ item.quantity }}</li>
+{% endfor %}
+</ul>
+<h3>Timeline</h3>
+<ul class="timeline">
+{% for step in timeline %}
+<li class="{{ 'active' if step.active else '' }}">
+  {{ '●' if step.active else '○' }} {{ step.label }} {{ step.time }}
 
 </li>
 
 {% endfor %}
 
 </ul>
+
+{% set actions = {
+  "PENDING": [("CONFIRM","Xác nhận đơn"),("CANCEL","Hủy đơn")],
+  "CONFIRMED": [("START_PREPARING","Bắt đầu chuẩn bị"),("CANCEL","Hủy đơn")],
+  "PREPARING": [("READY_TO_SHIP","Chuẩn bị xong"),("CANCEL","Hủy đơn")],
+  "SHIPPING": [("MARK_DELIVERED","Đã giao")],
+} %}
+{% if actions.get(order.status.value) %}
+<form method="post" action="{{ url_for('order.seller_order_action', order_id=order.id) }}">
+  {% for action, label in actions.get(order.status.value) %}
+    <button type="submit" name="action" value="{{ action }}">{{ label }}</button>
+  {% endfor %}
+</form>
+{% endif %}
 
 {% endblock %}

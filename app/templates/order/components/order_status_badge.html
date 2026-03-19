@@ -1,5 +1,5 @@
 
-{% set status = order.status %}
+{% set status = order.status.value if order.status.value is defined else order.status %}
 
 <span class="badge badge-{{ status|lower }}">
     {{ status }}
