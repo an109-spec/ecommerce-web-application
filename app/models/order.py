@@ -30,7 +30,12 @@ class Order(BaseModel):
         db.Enum(PaymentMethod, name="payment_method_enum"),
         nullable=False
     )
-
+    order_code = db.Column(
+    db.String(30),
+    unique=True,
+    nullable=False,
+    index=True
+    )
     subtotal = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     shipping_fee = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     cancelled_by = db.Column(db.String(20), nullable=True)
@@ -96,9 +101,3 @@ class OrderTracking(BaseModel):
     nullable=False
 )
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    order_code = db.Column(
-    db.String(30),
-    unique=True,
-    nullable=False,
-    index=True
-)

@@ -13,7 +13,7 @@ from app.models import FlashSale, Order, OrderItem, Product, ProductVariant, Pro
 from app.modules.cart.service import CartService
 from app.modules.user.service import UserService
 from app.core.enums.order_status import OrderStatus, PaymentMethod
-
+import uuid
 
 class CheckoutService:
     SESSION_KEY = "checkout"
@@ -162,6 +162,7 @@ class CheckoutService:
             shipping_fee=Decimal(str(payload["shipping_total_raw"])),
             status=OrderStatus.PENDING,
             payment_method=payment_method,
+            order_code=CheckoutService._generate_order_code(),
         )
         db.session.add(order)
         db.session.flush()
@@ -213,6 +214,10 @@ class CheckoutService:
             "order_id": order.id,
             "redirect_url": redirect_url,
         }
+    @staticmethod
+    def _generate_order_code() -> str:
+        return uuid.uuid4().hex[:12].upper()
+
 
     @staticmethod
     def build_checkout_payload(user_id: int) -> dict[str, Any]:
