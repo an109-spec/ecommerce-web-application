@@ -216,22 +216,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function bindEvents() {
-    root.querySelectorAll('[data-shipping-method]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        try {
-          checkout = await fetchJson('/checkout/shipping-method', {
-            method: 'POST',
-            body: JSON.stringify({
-              shop_id: Number(button.dataset.shippingMethod),
-              shipping_method: button.dataset.shippingCode,
-            }),
-          });
-          render(checkout);
-        } catch (error) {
-          alert(error.message);
-        }
-      });
+root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
+  try {
+    const selectedShopId = checkout?.shops?.[0]?.shop_id;
+    const selectedAddressId = checkout?.address?.id;
+    const selectedPaymentMethod = root.querySelector('input[name="payment_method"]:checked')?.value || checkout?.payment_method;
+
+    if (!selectedShopId) throw new Error('Chưa xác định shop_id');
+    if (!selectedAddressId) throw new Error('Chưa có địa chỉ giao hàng');
+    if (!selectedPaymentMethod) throw new Error('Chưa chọn phương thức thanh toán');
+
+    const payload = {
+      shop_id: Number(selectedShopId),
+      address_id: selectedAddressId,
+      payment_method: selectedPaymentMethod,
+    };
+
+    const result = await fetchJson('/checkout/confirm', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
+
+    window.location.href = result.redirect_url;
+  } catch (error) {
+    alert(error.message);
+  }
+});
 
     root.querySelectorAll('[data-apply-voucher-code]').forEach((button) => {
       button.addEventListener('click', async () => {
@@ -310,15 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         await fetchJson('/user/address', { method: 'PUT', body: JSON.stringify(payload) });
         await refreshCheckout();
-      } catch (error) {
-        alert(error.message);
-      }
-    });
-
-    root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
-      try {
-        const result = await fetchJson('/checkout/confirm', { method: 'POST', body: JSON.stringify({}) });
-        window.location.href = result.redirect_url;
       } catch (error) {
         alert(error.message);
       }

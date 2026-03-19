@@ -108,17 +108,30 @@ def select_address():
     except AppException as exc:
         return jsonify({"error": str(exc)}), exc.status_code
 
-
+from flask import current_app
 @checkout_bp.route("/confirm", methods=["POST"])
 def confirm_checkout():
     try:
         user_id = _resolve_user_id()
-        data = CheckoutService.confirm_checkout(user_id)
+        payload = request.get_json(silent=True) or {}
+
+        if not payload.get("shop_id"):
+            raise AppException("Thiếu shop_id", status_code=422)
+        if not payload.get("address_id"):
+            raise AppException("Thiếu địa chỉ giao hàng", status_code=422)
+        if not payload.get("payment_method"):
+            raise AppException("Thiếu phương thức thanh toán", status_code=422)
+
+        data = CheckoutService.confirm_checkout(user_id, payload)
         return jsonify(data), 200
 
     except AppException as exc:
         return jsonify({"error": str(exc)}), exc.status_code
 
-    except Exception as e:
-        print("ERROR CONFIRM CHECKOUT:", e)  
+    except (TypeError, ValueError) as exc:
+        current_app.logger.exception("Checkout confirm invalid payload")
+        return jsonify({"error": str(exc) or "Dữ liệu đặt hàng không hợp lệ"}), 422
+
+    except Exception:
+        current_app.logger.exception("ERROR CONFIRM CHECKOUT")
         return jsonify({"error": "Lỗi server"}), 500
