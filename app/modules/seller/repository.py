@@ -8,6 +8,8 @@ import os
 import uuid
 from werkzeug.utils import secure_filename
 from app.models.promotion import Promotion
+from sqlalchemy import cast, String
+
 
 class SellerRepository:
 
@@ -62,7 +64,11 @@ class SellerRepository:
         )
 
         if status:
-            query = query.filter(Order.status == status)
+            print("DEBUG STATUS:", status, type(status))
+            print("DEBUG VALUE:", getattr(status, "value", None))
+            #query = query.filter(cast(Order.status, String) == status.value)
+            if status:
+                query = query.filter(Order.status == status)
 
         return query.all()
 
@@ -111,7 +117,7 @@ class SellerRepository:
             .join(Order, Order.id == OrderItem.order_id)
             .filter(
                 Product.shop_id == shop_id,
-                Order.status == OrderStatus.DELIVERED
+                Order.status == OrderStatus.DELIVERED.value
             )
             .scalar()
         )

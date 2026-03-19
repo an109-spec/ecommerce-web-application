@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from app.common.exceptions import ForbiddenError, NotFoundError, ValidationError
@@ -35,7 +35,7 @@ class SellerCenterService:
         shipping = sum(1 for o in orders if o.status == OrderStatus.SHIPPING)
         cancelled = sum(1 for o in orders if o.status == OrderStatus.CANCELLED)
 
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc)
         today_revenue = sum(Decimal(o.total_price) for o in orders if o.created_at.date() == today)
 
         return {
@@ -56,16 +56,15 @@ class SellerCenterService:
         order_status = None
         if status and status.upper() != "ALL":
             try:
-                order_status = OrderStatus(status.upper())
+                order_status = OrderStatus.from_input(status)
             except ValueError as e:
                 raise ValidationError("Trạng thái đơn hàng không hợp lệ") from e
-
         return SellerRepository.get_orders_by_shop(shop_id, order_status)
 
     @staticmethod
     def update_order_status(shop_id: int, order_id: int, status: str):
         try:
-            new_status = OrderStatus(status.upper())
+            new_status = OrderStatus.from_input(status)
         except ValueError as e:
             raise ValidationError("Trạng thái đơn hàng không hợp lệ") from e
 

@@ -6,7 +6,7 @@ from app.modules.product.dto import ReviewCreateDTO
 from app.modules.product.service import ProductService
 from app.modules.seller.repository import SellerRepository
 from .service import OrderService
-from .status import OrderStatus
+from app.core.enums.order_status import OrderStatus
 from .workflow import apply_transition
 
 order_bp = Blueprint("order", __name__, url_prefix="/order")

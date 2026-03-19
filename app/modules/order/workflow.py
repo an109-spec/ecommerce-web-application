@@ -1,7 +1,7 @@
 from app.common.exceptions import ValidationError
 from app.extensions.db import db
 from app.models.order import OrderTracking
-from .status import OrderStatus
+from app.core.enums.order_status import OrderStatus
 from datetime import datetime, timezone
 
 VALID_TRANSITIONS = {

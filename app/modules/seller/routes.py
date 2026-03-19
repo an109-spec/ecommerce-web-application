@@ -709,7 +709,8 @@ def orders_page():
     shop = get_current_shop(user)
 
     status = request.args.get("status")
-
+    if status:
+        status = status.lower()
     orders = SellerCenterService.list_orders(shop.id, status)
 
     return render_template(

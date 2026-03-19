@@ -8,7 +8,7 @@ from app.common.exceptions import (
     ValidationError,
     ForbiddenError,
 )
-from .status import OrderStatus
+from app.core.enums.order_status import OrderStatus
 from .workflow import apply_transition
 from datetime import datetime, timezone
 
@@ -121,7 +121,7 @@ class OrderService:
             .order_by(Order.created_at.desc())
         )
         if status and status != "ALL":
-            query = query.filter(Order.status == OrderStatus(status))
+            query = query.filter(Order.status == OrderStatus.from_input(status))
         orders = query.all()
         return orders
 
