@@ -1,0 +1,69 @@
+{% extends "admin/layout_admin.html" %}
+
+{% block admin_content %}
+<!-- Khối tiêu đề với phong cách Card chuyên nghiệp -->
+<div class="dashboard-cards" style="margin-bottom: 15px;">
+    <div class="card" style="border-left: 5px solid #ee4d2d; background: #fff;">
+        <h1 style="font-size: 20px; margin: 0; color: #333; display: flex; align-items: center;">
+            <span style="color: #ee4d2d; margin-right: 10px;">📋</span> NHẬT KÝ HỆ THỐNG (AUDIT LOGS)
+        </h1>
+        <p style="font-size: 13px; color: #666; font-weight: normal; margin-top: 5px;">
+            Theo dõi lịch sử hoạt động và các thay đổi quan trọng trên hệ thống OneShop
+        </p>
+    </div>
+</div>
+
+<!-- Bộ lọc hành động gọn gàng -->
+<div class="toolbar" style="background: #fffdfa; padding: 12px; border: 1px solid #ffd8cf; border-radius: 10px; display: flex; align-items: center; gap: 15px;">
+    <form method="get" style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 14px; font-weight: 600; color: #555;">Loại hành động:</span>
+        <select name="action" onchange="this.form.submit()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ee4d2d; outline: none; cursor: pointer; background: white; min-width: 150px;">
+            <option value="ALL">Tất cả hành động</option>
+            {% for action in actions %}
+                <option value="{{ action }}" {{ 'selected' if action_filter == action else '' }}>{{ action }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<!-- Bảng dữ liệu Audit Logs -->
+<table class="admin-table">
+    <thead>
+        <tr style="background: #fef1ee;">
+            <th style="padding: 12px; width: 180px;">Thời gian</th>
+            <th style="padding: 12px;">Người thực hiện</th>
+            <th style="padding: 12px;">Hành động</th>
+            <th style="padding: 12px;">Đối tượng tác động</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 12px;">
+                <code style="color: #888; font-size: 13px;">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else 'N/A' }}</code>
+            </td>
+            <td style="padding: 12px;">
+                <strong style="color: #333;">
+                    {{ users[log.user_id].username if log.user_id in users else log.user_id }}
+                </strong>
+            </td>
+            <td style="padding: 12px;">
+                <span style="background: #fff7f5; color: #ee4d2d; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid #ffd8cf;">
+                    {{ log.action }}
+                </span>
+            </td>
+            <td style="padding: 12px;">
+                <span style="color: #555; font-family: monospace; font-size: 13px;">{{ log.target }}</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if not logs %}
+<div style="text-align: center; padding: 40px; color: #999; background: #fff; border: 1px solid #eee; border-radius: 10px; margin-top: 10px;">
+    Chưa có bản ghi hoạt động nào.
+</div>
+{% endif %}
+
+{% endblock %}

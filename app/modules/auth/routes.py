@@ -97,7 +97,7 @@ def login():
         session["user_id"] = user.id
 
         if user.role == "admin":
-            return redirect("/admin")
+            return redirect(url_for("admin.dashboard"))
 
         from app.models import Shop
 

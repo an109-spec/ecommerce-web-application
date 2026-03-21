@@ -1,27 +1,76 @@
 {% extends "admin/layout_admin.html" %}
 
 {% block admin_content %}
+<!-- Khối tiêu đề chuyên nghiệp -->
+<div class="dashboard-cards" style="margin-bottom: 15px;">
+    <div class="card" style="border-left: 5px solid #ee4d2d; background: #fff;">
+        <h1 style="font-size: 20px; margin: 0; color: #333;">QUẢN LÝ SẢN PHẨM</h1>
+        <p style="font-size: 13px; color: #666; font-weight: normal; margin-top: 5px;">
+            Kiểm duyệt nội dung và trạng thái hiển thị của sản phẩm trên sàn
+        </p>
+    </div>
+</div>
 
-<h1>Product Manager</h1>
+<!-- Thanh công cụ lọc -->
+<div class="toolbar" style="background: #fffdfa; padding: 12px; border: 1px solid #ffd8cf; border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+    <form method="get" style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 14px; font-weight: 600;">Trạng thái kiểm duyệt:</span>
+        <select name="status" onchange="this.form.submit()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ee4d2d; outline: none; cursor: pointer; background: white;">
+            <option value="ALL" {{ 'selected' if status_filter=='ALL' else '' }}>Tất cả sản phẩm</option>
+            <option value="PENDING" {{ 'selected' if status_filter=='PENDING' else '' }}>Chờ duyệt (Pending)</option>
+            <option value="ACTIVE" {{ 'selected' if status_filter=='ACTIVE' else '' }}>Đang hiển thị (Active)</option>
+            <option value="REJECTED" {{ 'selected' if status_filter=='REJECTED' else '' }}>Đã từ chối/Ẩn (Rejected)</option>
+        </select>
+    </form>
+</div>
 
-<button onclick="openCreate()">Add Product</button>
-
+<!-- Bảng danh sách sản phẩm -->
 <table class="admin-table">
+    <thead>
+        <tr style="background: #fef1ee;">
+            <th style="padding: 12px; color: #ee4d2d;">Tên sản phẩm</th>
+            <th style="padding: 12px;">Cửa hàng</th>
+            <th style="padding: 12px; text-align: center;">Trạng thái</th>
+            <th style="padding: 12px;">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in products %}
+        <tr>
+            <td style="padding: 12px;">
+                <strong style="color: #333;">{{ p.name }}</strong>
+            </td>
+            <td style="padding: 12px;">
+                <span style="color: #ee4d2d; font-size: 13px;">{{ p.shop.name if p.shop else 'N/A' }}</span>
+            </td>
+            <td style="padding: 12px; text-align: center;">
+                {% set status_val = p.status.value %}
+                {% if status_val == 'DRAFT' %}
+                    <span style="color: #faad14; font-weight: 600; background: #fffbe6; padding: 4px 10px; border-radius: 4px; font-size: 12px; border: 1px solid #ffe58f;">● ĐANG CHỜ DUYỆT</span>
+                {% elif status_val == 'HIDDEN' %}
+                    <span style="color: #ff4d4f; font-weight: 600; background: #fff1f0; padding: 4px 10px; border-radius: 4px; font-size: 12px; border: 1px solid #ffa39e;">● ĐÃ TỪ CHỐI</span>
+                {% else %}
+                    <span style="color: #52c41a; font-weight: 600; background: #f6ffed; padding: 4px 10px; border-radius: 4px; font-size: 12px; border: 1px solid #b7eb8f;">● ĐANG HOẠT ĐỘNG</span>
+                {% endif %}
+            </td>
+            <td style="padding: 12px;">
+                <a href="{{ url_for('admin.product_detail', product_id=p.id) }}" class="inline">
+                    <button type="button" style="border-color: #1890ff; color: #1890ff;">Chi tiết</button>
+                </a>
 
-<thead>
-<tr>
-<th>ID</th>
-<th>Name</th>
-<th>Price</th>
-<th>Stock</th>
-<th>Actions</th>
-</tr>
-</thead>
+                {% if p.status.value == 'DRAFT' %}
+                <form method="post" action="{{ url_for('admin.approve_product', product_id=p.id) }}" class="inline">
+                    <button type="submit" style="background: #52c41a; color: white; border: none;">Duyệt ngay</button>
+                </form>
+                {% endif %}
 
-<tbody id="product_table"></tbody>
-
+                <form method="post" action="{{ url_for('admin.reject_product', product_id=p.id) }}" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn gỡ sản phẩm này khỏi sàn?');">
+                    <button type="submit" style="background: #ee4d2d; color: white; border: none;">Gỡ bỏ</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
-
-<script src="{{ url_for('static', filename='js/admin_products.js') }}"></script>
 
 {% endblock %}

@@ -20,7 +20,7 @@ class User(BaseModel):
     failed_login_attempts = db.Column(db.Integer, default=0)
     last_failed_login = db.Column(db.DateTime, nullable=True)
     locked_until = db.Column(db.DateTime, nullable=True)
-
+    is_banned = db.Column(db.Boolean, default=False, nullable=False)
     profile = db.relationship(
         "UserProfile",
         back_populates="user",

@@ -26,6 +26,12 @@ class Shop(BaseModel):
     banner = db.Column(db.String(255))
     description = db.Column(db.Text)
     rating = db.Column(db.Numeric(3, 2), default=0.00)
+    status = db.Column(
+        db.Enum("PENDING", "ACTIVE", "BANNED", name="shop_status"),
+        default="PENDING",
+        nullable=False,
+        index=True,
+    )
 
     # =====================
     # SHIPPING SETTINGS

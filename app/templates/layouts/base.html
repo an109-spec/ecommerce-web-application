@@ -18,12 +18,36 @@
     <div class="container header-top-inner">
       <div class="top-left">
         <a href="{{ url_for('seller.seller_center') if session.get('user_id') else url_for('auth.login', role='seller', next=url_for('seller.seller_center')) }}">Kênh Người Bán</a>
+        {% if current_user and current_user.role == 'admin' %}
+        <span>|</span>
+        <a href="{{ url_for('admin.dashboard') }}">Quản trị hệ thống</a>
+        {% endif %}
         <span>|</span>
       </div>
 
       <div class="top-right">
-        <a href="#">🔔 Thông Báo</a>
-        <span>|</span>
+        {% if current_user %}
+          <details class="notify-menu">
+            <summary>🔔 Thông báo{% if unread_notifications %} ({{ unread_notifications }}){% endif %}</summary>
+            <div class="notify-dropdown">
+              {% if header_notifications %}
+                {% for n in header_notifications %}
+                  <div class="notify-item{% if not n.is_read %} notify-item--new{% endif %}">
+                    <strong>{{ n.title }}</strong>
+                    <p>{{ n.message }}</p>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="notify-item">Không có thông báo</div>
+              {% endif %}
+            </div>
+          </details>
+          <span>|</span>
+        {% else %}
+          <a href="#">🔔 Thông Báo</a>
+          <span>|</span>
+        {% endif %}
+
         <a href="{{ url_for('home.support_page') }}">❓ Hỗ Trợ</a>
         <span>|</span>
 
@@ -58,12 +82,6 @@
           <input type="text" name="q" id="searchInput" placeholder="Voucher 40%" autocomplete="off">
           <button type="submit">🔍</button>
         </form>
-        <div class="search-suggest" id="searchSuggest">
-          <a href="#">Túi Đeo Chéo Nam</a>
-          <a href="#">Sạc Dựng Phòng 50000mah</a>
-          <a href="#">Đồ Ngủ 2 Dây</a>
-          <a href="#">Dép Nam Nike</a>
-        </div>
       </div>
 
       <div class="cart" data-cart-shell>
@@ -88,6 +106,15 @@
 
 <main class="app-main">
  <div class="container">
+      {% if current_user and current_user.is_banned %}
+      <div class="alert alert--danger">Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin.</div>
+    {% endif %}
+    {% if current_shop and current_shop.status == 'PENDING' %}
+      <div class="alert alert--warning">Shop đang chờ duyệt.</div>
+    {% elif current_shop and current_shop.status == 'BANNED' %}
+      <div class="alert alert--danger">Shop của bạn đã bị khóa. Liên hệ admin để mở khóa.</div>
+    {% endif %}
+
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}

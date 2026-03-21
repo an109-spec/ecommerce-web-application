@@ -153,6 +153,8 @@ class AuthService:
                 message="Tài khoản bị khóa",
                 locked_until=user.locked_until,
             )
+        if user.is_banned:
+            raise UnauthorizedError("Tài khoản của bạn đã bị khóa. Liên hệ admin để mở khóa")
 
         # ===== Check password =====
         if not check_password_hash(user.password_hash, dto.password):

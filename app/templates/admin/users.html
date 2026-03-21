@@ -1,24 +1,69 @@
 {% extends "admin/layout_admin.html" %}
 
 {% block admin_content %}
+<div class="user-management-wrapper">
+    <div class="dashboard-cards" style="margin-bottom: 10px;">
+        <div class="card" style="border-left: 5px solid #ee4d2d;">
+            <h3>QUẢN LÝ NGƯỜI DÙNG</h3>
+            <p style="font-size: 14px; color: #666;">Danh sách thành viên hệ thống</p>
+        </div>
+    </div>
 
-<h1>User Manager</h1>
+    <div class="toolbar" style="background: #fffdfa; padding: 10px; border: 1px solid #ffd8cf; border-radius: 10px;">
+        <form method="get">
+            <label style="font-size: 14px;">Lọc theo trạng thái: </label>
+            <select name="status" onchange="this.form.submit()" style="padding: 5px; border-radius: 5px; border: 1px solid #ee4d2d;">
+                <option value="ALL" {{ 'selected' if status_filter=='ALL' else '' }}>Tất cả</option>
+                <option value="ACTIVE" {{ 'selected' if status_filter=='ACTIVE' else '' }}>Đang hoạt động</option>
+                <option value="BANNED" {{ 'selected' if status_filter=='BANNED' else '' }}>Đã khóa</option>
+            </select>
+        </form>
+    </div>
 
-<table class="admin-table">
-
-<thead>
-
-<tr>
-<th>ID</th>
-<th>Name</th>
-<th>Email</th>
-<th>Joined</th>
-</tr>
-
-</thead>
-
-<tbody id="users_table"></tbody>
-
-</table>
-
+    <table class="admin-table">
+        <thead>
+            <tr style="background: #ffe7e0;">
+                <th>ID</th>
+                <th>Tài khoản</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>#{{ u.id }}</td>
+                <td><strong>{{ u.username }}</strong></td>
+                <td><span style="background: #eee; padding: 2px 8px; border-radius: 4px; font-size: 12px;">{{ u.role|upper }}</span></td>
+                <td>
+                    {% if u.is_banned %}
+                        <span style="color: #ee4d2d; font-weight: bold;">● Đã khóa</span>
+                    {% else %}
+                        <span style="color: #2db84c; font-weight: bold;">● Hoạt động</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.user_detail', user_id=u.id) }}" class="inline"><button type="button">Xem</button></a>
+                    
+                    {% if u.role != 'admin' %}
+                        {% if u.is_banned %}
+                            <form method="post" action="{{ url_for('admin.unban_user', user_id=u.id) }}" class="inline">
+                                <button type="submit" style="color: #2db84c;">Mở khóa</button>
+                            </form>
+                        {% else %}
+                            <form method="post" action="{{ url_for('admin.ban_user', user_id=u.id) }}" class="inline" onsubmit="return confirm('Khóa người dùng này?');">
+                                <button type="submit" style="color: #ee4d2d;">Khóa</button>
+                            </form>
+                        {% endif %}
+                        <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}" class="inline" onsubmit="return confirm('Xóa vĩnh viễn?');">
+                            <button type="submit" style="background: #ee4d2d; color: white; border: none;">Xóa</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

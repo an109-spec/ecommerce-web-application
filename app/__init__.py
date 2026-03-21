@@ -1,6 +1,8 @@
 import os
 from flask import Flask
 from datetime import datetime
+from sqlalchemy import inspect
+from werkzeug.security import generate_password_hash
 
 from app.config import config_by_name
 from app.extensions import init_extensions, db
@@ -53,14 +55,19 @@ def create_app():
     # Register blueprints
     register_blueprints(app)
     register_cli(app)
+    ensure_default_admin(app)
+
 
     @app.context_processor
     def inject_globals():
         from flask import session
-        from app.models import User, Shop
+        from app.models import Notification, User, Shop
 
         current_user = None
         current_shop = None
+        header_notifications = []
+        unread_notifications = 0
+
         user_id = session.get("user_id")
 
         if user_id:
@@ -68,10 +75,22 @@ def create_app():
             if current_user:
                 current_shop = Shop.query.filter_by(owner_id=current_user.id).first()
 
+                header_notifications = (
+                    Notification.query
+                    .filter_by(user_id=current_user.id)
+                    .order_by(Notification.created_at.desc())
+                    .limit(5)
+                    .all()
+                )
+                unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+
+
         return {
             "current_year": datetime.now().year,
             "current_user": current_user,
             "current_shop": current_shop,
+            "header_notifications": header_notifications,
+            "unread_notifications": unread_notifications,
         }
 
     if app.config["DEBUG"]:
@@ -80,6 +99,27 @@ def create_app():
 
     return app
 
+
+def ensure_default_admin(app):
+    from app.models import User
+
+    with app.app_context():
+        inspector = inspect(db.engine)
+        if not inspector.has_table("users"):
+            return
+
+        admin = User.query.filter_by(username="admin").first()
+        if admin:
+            return
+
+        default_admin = User(
+            username="admin",
+            email="admin@oneshop.local",
+            password_hash=generate_password_hash("admin123"),
+            role="admin",
+        )
+        db.session.add(default_admin)
+        db.session.commit()
 
 def register_blueprints(app):
     app.register_blueprint(auth_bp)

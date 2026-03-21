@@ -2,42 +2,16 @@
 
 {% block admin_content %}
 
-<h1>Admin Dashboard</h1>
+<h1>ADMIN DASHBOARD</h1>
 
 <div class="dashboard-cards">
 
-    <div class="card">
-        <h3>Total Orders</h3>
-        <p id="total_orders">0</p>
-    </div>
-
-    <div class="card">
-        <h3>Monthly Revenue</h3>
-        <p id="monthly_revenue">0</p>
-    </div>
-
-    <div class="card">
-        <h3>New Users</h3>
-        <p id="new_users">0</p>
-    </div>
+  <div class="card"><h3>Total Users</h3><p>{{ stats.total_users }}</p></div>
+  <div class="card"><h3>Total Shops</h3><p>{{ stats.total_shops }}</p></div>
+  <div class="card"><h3>Total Products</h3><p>{{ stats.total_products }}</p></div>
+  <div class="card"><h3>Total Orders</h3><p>{{ stats.total_orders }}</p></div>
+  <div class="card"><h3>Flash Sale Running</h3><p>{{ stats.running_flash_sales }}</p></div>
 
 </div>
-
-<h2>Top Products</h2>
-
-<table class="admin-table">
-
-<thead>
-<tr>
-<th>Product</th>
-<th>Sold</th>
-</tr>
-</thead>
-
-<tbody id="top_products"></tbody>
-
-</table>
-
-<script src="{{ url_for('static', filename='js/admin_dashboard.js') }}"></script>
 
 {% endblock %}

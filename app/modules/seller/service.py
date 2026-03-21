@@ -49,10 +49,12 @@ class SellerService:
             contact_phone=dto.phone.strip(),
             onboarding_completed=False,
             onboarding_step=2,
+            status="PENDING",
         )
 
         db.session.add(shop)
         user.is_seller = True
+        user.role = "seller"
         db.session.commit()
 
         return shop

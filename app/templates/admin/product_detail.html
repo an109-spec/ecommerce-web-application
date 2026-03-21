@@ -1,0 +1,72 @@
+{% extends "admin/layout_admin.html" %}
+
+{% block admin_content %}
+<!-- Khối tiêu đề và điều hướng -->
+<div class="dashboard-cards" style="margin-bottom: 15px;">
+    <div class="card" style="border-left: 5px solid #ee4d2d; background: #fff; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="font-size: 20px; margin: 0; color: #333;">CHI TIẾT SẢN PHẨM #{{ product.id }}</h1>
+            <p style="font-size: 13px; color: #666; margin-top: 5px;">Kiểm tra thông tin và trạng thái hiển thị trên sàn</p>
+        </div>
+        <a href="{{ url_for('admin.products') }}" class="inline">
+            <button type="button" style="border-color: #ddd; color: #666;">← Quay lại danh sách</button>
+        </a>
+    </div>
+</div>
+
+<!-- Bảng thông tin chi tiết sản phẩm -->
+<div style="background: #fff; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+    <table class="admin-table" style="border: none;">
+        <tbody>
+            <tr>
+                <td style="width: 220px; background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Tên sản phẩm</td>
+                <td style="padding: 15px;"><strong style="color: #333; font-size: 16px;">{{ product.name }}</strong></td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Thuộc Cửa hàng (Shop)</td>
+                <td style="padding: 15px;">
+                    {% if product.shop %}
+                        <a href="{{ url_for('admin.shop_detail', shop_id=product.shop.id) }}" style="color: #ee4d2d; text-decoration: none; font-weight: 600;">
+                            🏪 {{ product.shop.name }}
+                        </a>
+                    {% else %}
+                        <span style="color: #999;">N/A</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Trạng thái kiểm duyệt</td>
+                <td style="padding: 15px;">
+                    {% set status_val = product.status.value %}
+                    {% if status_val == 'DRAFT' %}
+                        <span style="color: #faad14; font-weight: bold; background: #fffbe6; padding: 4px 12px; border-radius: 4px; border: 1px solid #ffe58f;">● CHỜ DUYỆT (DRAFT)</span>
+                    {% elif status_val == 'HIDDEN' %}
+                        <span style="color: #ee4d2d; font-weight: bold; background: #fff1f0; padding: 4px 12px; border-radius: 4px; border: 1px solid #ffa39e;">● ĐÃ GỠ/ẨN (HIDDEN)</span>
+                    {% else %}
+                        <span style="color: #2db84c; font-weight: bold; background: #f6ffed; padding: 4px 12px; border-radius: 4px; border: 1px solid #b7eb8f;">● ĐANG HOẠT ĐỘNG (ACTIVE)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Ngày đăng bán</td>
+                <td style="padding: 15px; color: #888; font-family: monospace;">
+                    {{ product.created_at.strftime('%d/%m/%Y %H:%M') if product.created_at else 'N/A' }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Khối hành động nhanh (Duyệt/Gỡ) -->
+<div style="margin-top: 20px; display: flex; gap: 10px;">
+    {% if product.status.value == 'DRAFT' %}
+    <form method="post" action="{{ url_for('admin.approve_product', product_id=product.id) }}" class="inline">
+        <button type="submit" style="background: #2db84c; color: white; border: none; padding: 10px 25px; font-weight: bold;">DUYỆT SẢN PHẨM</button>
+    </form>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('admin.reject_product', product_id=product.id) }}" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn gỡ sản phẩm này khỏi sàn hiển thị?');">
+        <button type="submit" style="background: #ee4d2d; color: white; border: none; padding: 10px 25px;">GỠ SẢN PHẨM</button>
+    </form>
+</div>
+{% endblock %}

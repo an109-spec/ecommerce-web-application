@@ -61,7 +61,7 @@ class SellerProductService:
             slug=slug,
             description=dto.description,
             thumbnail=dto.images[0] if dto.images else None,
-            status=ProductStatus.ACTIVE,
+            status=ProductStatus.DRAFT,
         )
 
         SellerRepository.create_product(product)

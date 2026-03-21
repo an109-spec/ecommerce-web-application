@@ -19,7 +19,20 @@ class FlashSale(BaseModel):
     end_time = db.Column(db.DateTime(timezone=True), nullable=False)
 
     is_active = db.Column(db.Boolean, default=True)
+    disabled_reason = db.Column(db.String(255), nullable=True)
     variant = db.relationship("ProductVariant")
+    @property
+    def status(self):
+        now = datetime.now(timezone.utc)
+
+        if not self.is_active:
+            return "DISABLED"
+
+        if now > self.end_time or self.sold_count >= self.stock_limit:
+            return "EXPIRED"
+
+        return "RUNNING"
+
     @property
     def flash_price(self):
         return int(

@@ -1,0 +1,85 @@
+{% extends "admin/layout_admin.html" %}
+
+{% block admin_content %}
+<!-- Khối tiêu đề và nút điều hướng -->
+<div class="dashboard-cards" style="margin-bottom: 15px;">
+    <div class="card" style="border-left: 5px solid #ee4d2d; background: #fff; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="font-size: 20px; margin: 0; color: #333;">THÔNG TIN CỬA HÀNG #{{ shop.id }}</h1>
+            <p style="font-size: 13px; color: #666; margin-top: 5px;">Quản lý hồ sơ và trạng thái hoạt động của Shop</p>
+        </div>
+        <a href="{{ url_for('admin.shops') }}" class="inline">
+            <button type="button" style="border-color: #ddd; color: #666;">← Quay lại danh sách</button>
+        </a>
+    </div>
+</div>
+
+<!-- Bảng chi tiết Shop -->
+<div style="background: #fff; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+    <table class="admin-table" style="border: none;">
+        <tbody>
+            <tr>
+                <td style="width: 220px; background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Tên cửa hàng (Shop Name)</td>
+                <td style="padding: 15px;"><strong style="color: #ee4d2d; font-size: 16px;">{{ shop.name }}</strong></td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Chủ sở hữu (Owner)</td>
+                <td style="padding: 15px;">
+                    {% if shop.owner %}
+                        <a href="{{ url_for('admin.user_detail', user_id=shop.owner.id) }}" style="color: #1890ff; text-decoration: none; font-weight: 600;">
+                            👤 {{ shop.owner.username }}
+                        </a>
+                    {% else %}
+                        <span style="color: #999;">N/A</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Trạng thái hoạt động</td>
+                <td style="padding: 15px;">
+                    {% if shop.status == 'ACTIVE' %}
+                        <span style="color: #2db84c; font-weight: bold; background: #f6ffed; padding: 4px 12px; border-radius: 4px; border: 1px solid #b7eb8f;">● ĐANG HOẠT ĐỘNG</span>
+                    {% elif shop.status == 'PENDING' %}
+                        <span style="color: #faad14; font-weight: bold; background: #fffbe6; padding: 4px 12px; border-radius: 4px; border: 1px solid #ffe58f;">● CHỜ DUYỆT</span>
+                    {% else %}
+                        <span style="color: #ee4d2d; font-weight: bold; background: #fff1f0; padding: 4px 12px; border-radius: 4px; border: 1px solid #ffa39e;">● ĐÃ KHÓA (BANNED)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Tổng số sản phẩm</td>
+                <td style="padding: 15px;">
+                    <span style="font-size: 18px; font-weight: bold; color: #333;">{{ products_count }}</span> sản phẩm đang đăng bán
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Ngày thành lập</td>
+                <td style="padding: 15px; color: #888; font-family: monospace;">
+                    {{ shop.created_at.strftime('%d/%m/%Y %H:%M') if shop.created_at else 'N/A' }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Khối hành động nhanh (Duyệt/Khóa/Xóa) -->
+<div style="margin-top: 20px; display: flex; gap: 10px;">
+    {% if shop.status == 'PENDING' %}
+        <form method="post" action="{{ url_for('admin.approve_shop', shop_id=shop.id) }}" class="inline">
+            <button type="submit" style="background: #2db84c; color: white; border: none; padding: 10px 25px; font-weight: bold;">PHÊ DUYỆT SHOP</button>
+        </form>
+    {% elif shop.status == 'ACTIVE' %}
+        <form method="post" action="{{ url_for('admin.ban_shop', shop_id=shop.id) }}" class="inline">
+            <button type="submit" style="background: #faad14; color: white; border: none; padding: 10px 25px;">KHÓA CỬA HÀNG</button>
+        </form>
+    {% elif shop.status == 'BANNED' %}
+        <form method="post" action="{{ url_for('admin.unban_shop', shop_id=shop.id) }}" class="inline">
+            <button type="submit" style="background: #2db84c; color: white; border: none; padding: 10px 25px;">MỞ KHÓA SHOP</button>
+        </form>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('admin.delete_shop', shop_id=shop.id) }}" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn cửa hàng này và toàn bộ sản phẩm của nó?');">
+        <button type="submit" style="background: #ee4d2d; color: white; border: none; padding: 10px 25px;">XÓA CỬA HÀNG</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "admin/layout_admin.html" %}
+
+{% block admin_content %}
+<!-- Khối tiêu đề với nút quay lại -->
+<div class="dashboard-cards" style="margin-bottom: 15px;">
+    <div class="card" style="border-left: 5px solid #ee4d2d; background: #fff; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="font-size: 20px; margin: 0; color: #333;">CHI TIẾT NGƯỜI DÙNG #{{ user.id }}</h1>
+            <p style="font-size: 13px; color: #666; margin-top: 5px;">Xem thông tin hồ sơ và hoạt động của thành viên</p>
+        </div>
+        <a href="{{ url_for('admin.users') }}" class="inline">
+            <button type="button" style="border-color: #ddd; color: #666;">← Quay lại danh sách</button>
+        </a>
+    </div>
+</div>
+
+<!-- Bảng chi tiết thông tin -->
+<div style="background: #fff; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+    <table class="admin-table" style="border: none;">
+        <tbody>
+            <tr>
+                <td style="width: 200px; background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Tên tài khoản (Username)</td>
+                <td style="padding: 15px;"><strong>{{ user.username }}</strong></td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Địa chỉ Email</td>
+                <td style="padding: 15px; color: #ee4d2d;">{{ user.email }}</td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Vai trò hệ thống</td>
+                <td style="padding: 15px;">
+                    <span style="background: #eee; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                        {{ user.role|upper }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Trạng thái tài khoản</td>
+                <td style="padding: 15px;">
+                    {% if user.is_banned %}
+                        <span style="color: #ee4d2d; font-weight: bold;">● Đang bị khóa (Banned)</span>
+                    {% else %}
+                        <span style="color: #2db84c; font-weight: bold;">● Đang hoạt động (Active)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Ngày tham gia</td>
+                <td style="padding: 15px; color: #888; font-family: monospace;">
+                    {{ user.created_at.strftime('%d/%m/%Y %H:%M') if user.created_at else 'Không rõ' }}
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Tổng số đơn hàng</td>
+                <td style="padding: 15px;">
+                    <span style="font-size: 18px; font-weight: bold; color: #333;">{{ orders_count }}</span> đơn hàng
+                </td>
+            </tr>
+            <tr>
+                <td style="background: #fafafa; font-weight: 600; color: #555; padding: 15px;">Cửa hàng sở hữu</td>
+                <td style="padding: 15px;">
+                    {% if shop %}
+                        <a href="{{ url_for('admin.shop_detail', shop_id=shop.id) }}" style="color: #ee4d2d; text-decoration: none; font-weight: 600;">
+                            🏪 {{ shop.name }}
+                        </a>
+                    {% else %}
+                        <span style="color: #999; font-style: italic;">Chưa mở shop</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Khối hành động nhanh (Quick Actions) bên dưới -->
+<div style="margin-top: 20px; display: flex; gap: 10px;">
+    {% if user.role != 'admin' %}
+        {% if user.is_banned %}
+            <form method="post" action="{{ url_for('admin.unban_user', user_id=user.id) }}" class="inline">
+                <button type="submit" style="background: #2db84c; color: white; border: none; padding: 8px 20px;">Mở khóa tài khoản</button>
+            </form>
+        {% else %}
+            <form method="post" action="{{ url_for('admin.ban_user', user_id=user.id) }}" class="inline" onsubmit="return confirm('Khóa người dùng này?');">
+                <button type="submit" style="background: #ee4d2d; color: white; border: none; padding: 8px 20px;">Khóa tài khoản</button>
+            </form>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

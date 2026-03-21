@@ -1,0 +1,84 @@
+{% extends "admin/layout_admin.html" %}
+
+{% block admin_content %}
+<!-- Tận dụng class card có sẵn để làm tiêu đề nổi bật -->
+<div class="dashboard-cards" style="margin-bottom: 15px;">
+    <div class="card" style="border-left: 5px solid #ee4d2d; background: #fff;">
+        <h1 style="font-size: 20px; margin: 0; color: #333;">QUẢN LÝ CỬA HÀNG</h1>
+        <p style="font-size: 13px; color: #666; font-weight: normal; margin-top: 5px;">
+            Duyệt, khóa hoặc quản lý các Shop trên hệ thống
+        </p>
+    </div>
+</div>
+
+<!-- Toolbar lọc đồng bộ màu cam -->
+<div class="toolbar" style="background: #fffdfa; padding: 12px; border: 1px solid #ffd8cf; border-radius: 10px;">
+    <form method="get" style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 14px; font-weight: 600;">Lọc trạng thái:</span>
+        <select name="status" onchange="this.form.submit()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ee4d2d; outline: none; cursor: pointer;">
+            <option value="ALL" {{ 'selected' if status_filter=='ALL' else '' }}>Tất cả cửa hàng</option>
+            <option value="PENDING" {{ 'selected' if status_filter=='PENDING' else '' }}>Chờ duyệt (Pending)</option>
+            <option value="ACTIVE" {{ 'selected' if status_filter=='ACTIVE' else '' }}>Đang hoạt động (Active)</option>
+            <option value="BANNED" {{ 'selected' if status_filter=='BANNED' else '' }}>Đang bị khóa (Banned)</option>
+        </select>
+    </form>
+</div>
+
+<!-- Bảng dữ liệu với các điểm nhấn màu sắc -->
+<table class="admin-table">
+    <thead>
+        <tr style="background: #fef1ee;">
+            <th style="padding: 12px; color: #ee4d2d;">Tên Shop</th>
+            <th style="padding: 12px;">Chủ sở hữu</th>
+            <th style="padding: 12px; text-align: center;">Sản phẩm</th>
+            <th style="padding: 12px;">Trạng thái</th>
+            <th style="padding: 12px;">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in shops %}
+        <tr style="transition: background 0.3s;">
+            <td style="padding: 12px;"><strong>{{ s.name }}</strong></td>
+            <td style="padding: 12px;">
+                <span style="color: #555;">{{ s.owner.username if s.owner else 'N/A' }}</span>
+            </td>
+            <td style="padding: 12px; text-align: center;">
+                <span style="background: #f0f0f0; padding: 2px 8px; border-radius: 10px; font-size: 12px;">{{ s.products|length }}</span>
+            </td>
+            <td style="padding: 12px;">
+                {% if s.status == 'ACTIVE' %}
+                    <span style="color: #2db84c; font-weight: 600;">● Hoạt động</span>
+                {% elif s.status == 'PENDING' %}
+                    <span style="color: #faad14; font-weight: 600;">● Chờ duyệt</span>
+                {% else %}
+                    <span style="color: #ee4d2d; font-weight: 600;">● Bị khóa</span>
+                {% endif %}
+            </td>
+            <td style="padding: 12px;">
+                <a href="{{ url_for('admin.shop_detail', shop_id=s.id) }}" class="inline">
+                    <button type="button" style="color: #1890ff; border-color: #1890ff;">Xem</button>
+                </a>
+
+                {% if s.status == 'PENDING' %}
+                    <form method="post" action="{{ url_for('admin.approve_shop', shop_id=s.id) }}" class="inline">
+                        <button type="submit" style="background: #2db84c; color: white; border: none;">Duyệt Shop</button>
+                    </form>
+                {% elif s.status == 'ACTIVE' %}
+                    <form method="post" action="{{ url_for('admin.ban_shop', shop_id=s.id) }}" class="inline">
+                        <button type="submit" style="color: #ee4d2d; border-color: #ee4d2d;">Khóa</button>
+                    </form>
+                {% elif s.status == 'BANNED' %}
+                    <form method="post" action="{{ url_for('admin.unban_shop', shop_id=s.id) }}" class="inline">
+                        <button type="submit" style="color: #2db84c; border-color: #2db84c;">Mở khóa</button>
+                    </form>
+                {% endif %}
+
+                <form method="post" action="{{ url_for('admin.delete_shop', shop_id=s.id) }}" class="inline" onsubmit="return confirm('Xóa vĩnh viễn shop này?');">
+                    <button type="submit" style="background: #666; color: white; border: none;">Xóa</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
