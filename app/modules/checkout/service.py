@@ -9,7 +9,7 @@ from flask import session
 
 from app.common.exceptions import NotFoundError, ValidationError
 from app.extensions.db import db
-from app.models import FlashSale, Order, OrderItem, Product, ProductVariant, Promotion, Voucher
+from app.models import FlashSale, Order, OrderItem, Product, ProductVariant, Promotion, Voucher,OrderTracking
 from app.modules.cart.service import CartService
 from app.modules.user.service import UserService
 from app.core.enums.order_status import OrderStatus, PaymentMethod
@@ -143,10 +143,23 @@ class CheckoutService:
         return CheckoutService.build_checkout_payload(user_id)
 
     @staticmethod
-    def confirm_checkout(user_id: int) -> dict[str, Any]:
+    def confirm_checkout(user_id: int, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         state = CheckoutService._require_state()
-        payload = CheckoutService.build_checkout_payload(user_id)
-        address = payload.get("address")
+        payload = payload or {}
+
+        # 1. Cập nhật state từ payload
+        incoming_payment_method = (payload.get("payment_method") or "").strip().upper()
+        if incoming_payment_method:
+            state["payment_method"] = incoming_payment_method
+
+        incoming_address_id = payload.get("address_id")
+        if incoming_address_id:
+            state["address_id"] = incoming_address_id
+
+        CheckoutService._save_state(state)
+        checkout_payload = CheckoutService.build_checkout_payload(user_id)
+        
+        address = checkout_payload.get("address")
         if not address:
             raise ValidationError("Vui lòng chọn địa chỉ nhận hàng")
 
@@ -155,19 +168,30 @@ class CheckoutService:
             raise ValidationError("Vui lòng chọn phương thức thanh toán")
         payment_method = PaymentMethod(payment_method_raw)
 
+        # 2. Tạo Order (Đã thêm shop_id và address_id)
         order = Order(
             user_id=user_id,
-            total_price=Decimal(str(payload["total_raw"])),
-            subtotal=Decimal(str(payload["subtotal_raw"])),
-            shipping_fee=Decimal(str(payload["shipping_total_raw"])),
+            shop_id=payload.get("shop_id") or checkout_payload["shops"][0]["shop_id"], # Truyền shop_id vào Order
+            address_id=str(state["address_id"]),                                         # Truyền địa chỉ vào Order
+            total_price=Decimal(str(checkout_payload["total_raw"])),
+            subtotal=Decimal(str(checkout_payload["subtotal_raw"])),
+            shipping_fee=Decimal(str(checkout_payload["shipping_total_raw"])),
             status=OrderStatus.PENDING,
             payment_method=payment_method,
             order_code=CheckoutService._generate_order_code(),
         )
         db.session.add(order)
-        db.session.flush()
+        db.session.flush() # Lấy order.id
 
-        for shop in payload["shops"]:
+        # 3. Khởi tạo Tracking Lịch sử đơn hàng
+        tracking = OrderTracking(
+            order_id=order.id,
+            status=OrderStatus.PENDING
+        )
+        db.session.add(tracking)
+
+        # 4. Xử lý Items & Kho
+        for shop in checkout_payload["shops"]:
             voucher_data = shop.get("voucher")
             if voucher_data:
                 voucher = db.session.get(Voucher, int(voucher_data["voucher_id"]))
@@ -179,16 +203,20 @@ class CheckoutService:
                 variant = db.session.get(ProductVariant, int(item["variant_id"]))
                 if not variant or not variant.product:
                     raise NotFoundError("Không tìm thấy phân loại sản phẩm")
+                
                 quantity = int(item["quantity"])
                 if quantity > int(variant.stock or 0):
                     raise ValidationError(f"Sản phẩm {variant.product.name} không đủ tồn kho")
 
                 price = Decimal(str(item["effective_price_raw"]))
                 subtotal = Decimal(str(item["item_total_raw"]))
+                
+                # Lưu chi tiết đơn hàng (Đã thêm variant_id)
                 db.session.add(
                     OrderItem(
                         order_id=order.id,
                         product_id=variant.product_id,
+                        variant_id=variant.id,  # Lưu phân loại khách chọn
                         price=price,
                         quantity=quantity,
                         subtotal=subtotal,
@@ -196,22 +224,27 @@ class CheckoutService:
                         product_thumbnail=variant.image_url or variant.product.thumbnail,
                     )
                 )
+                
+                # Trừ tồn kho
                 variant.stock = int(variant.stock or 0) - quantity
-
                 flash_sale = CheckoutService._get_active_flash_sale(variant.id)
                 if flash_sale:
                     flash_sale.sold_count = int(flash_sale.sold_count or 0) + quantity
 
+        # 5. Commit và Redirect
         db.session.commit()
         CheckoutService._cleanup_after_confirm(state)
 
-        redirect_url = f"/payment/success/{order.id}"
+        # Gán sẵn order_id vào biến để tránh lỗi DetachedInstanceError
+        saved_order_id = order.id 
+        
+        redirect_url = f"/payment/success/{saved_order_id}"
         if payment_method == PaymentMethod.VNPAY:
-            redirect_url = f"/payment/select/{order.id}"
+            redirect_url = f"/payment/select/{saved_order_id}"
 
         return {
             "message": "Đặt hàng thành công",
-            "order_id": order.id,
+            "order_id": saved_order_id,
             "redirect_url": redirect_url,
         }
     @staticmethod
@@ -242,6 +275,7 @@ class CheckoutService:
 
         for item_entry in state.get("items", []):
             variant = CheckoutService._resolve_variant(item_entry)
+            db.session.refresh(variant)
             quantity = int(item_entry["quantity"])
             if quantity > int(variant.stock or 0):
                 raise ValidationError(f"Sản phẩm {variant.product.name} vượt quá tồn kho")
@@ -290,13 +324,17 @@ class CheckoutService:
             shipping_total_raw += shipping_fee_raw
 
             shop_subtotal_raw = sum((Decimal(str(item["item_total_raw"])) for item in shop_group["items"]), Decimal("0"))
+            # Tính tổng giá gốc để check điều kiện Voucher
+            shop_original_subtotal = sum((Decimal(str(item["original_price_raw"])) * item["quantity"] for item in shop_group["items"]), Decimal("0"))
+            # Giá thực tế (đã giảm Flash/Promo) để khách thanh toán
+            shop_effective_subtotal = sum((Decimal(str(item["item_total_raw"])) for item in shop_group["items"]), Decimal("0"))
             voucher_discount_raw = Decimal("0")
             voucher = None
             voucher_id = state.setdefault("shop_vouchers", {}).get(str(shop_id))
             if voucher_id:
                 voucher = CheckoutService._get_valid_voucher(voucher_id=int(voucher_id), shop_id=shop_id)
-                if voucher and shop_subtotal_raw >= Decimal(str(voucher.min_order_value or 0)):
-                    voucher_discount_raw = CartService._calculate_voucher_discount(shop_subtotal_raw, voucher)
+                if voucher and shop_original_subtotal >= Decimal(str(voucher.min_order_value or 0)):
+                    voucher_discount_raw = CartService._calculate_voucher_discount(shop_effective_subtotal, voucher)
                 else:
                     state["shop_vouchers"].pop(str(shop_id), None)
                     voucher = None
@@ -474,29 +512,39 @@ class CheckoutService:
 
     @staticmethod
     def _get_variant_pricing(variant: ProductVariant) -> dict[str, Decimal | None]:
-        base_price = Decimal(str(variant.price or 0))
-        flash_sale = CheckoutService._get_active_flash_sale(variant.id)
-        promotion = CheckoutService._get_active_promotion(variant.id)
+            # Luôn lấy giá gốc từ DB của variant
+            base_price = Decimal(str(variant.price or 0))
+            
+            # Lấy thông tin Flash Sale và Promotion mới nhất
+            flash_sale = CheckoutService._get_active_flash_sale(variant.id)
+            promotion = CheckoutService._get_active_promotion(variant.id)
 
-        flash_discount = Decimal("0")
-        flash_price = None
-        if flash_sale:
-            flash_discount = (base_price * Decimal(str(flash_sale.discount_percent or 0)) / Decimal("100")).quantize(Decimal("0.01"))
-            flash_price = max(base_price - flash_discount, Decimal("0"))
+            flash_discount = Decimal("0")
+            promotion_discount = Decimal("0")
+            flash_price = None
 
-        promotion_discount = Decimal("0")
-        if promotion:
-            promotion_discount = (base_price * Decimal(str(promotion.discount_percent or 0)) / Decimal("100")).quantize(Decimal("0.01"))
+    # Logic ưu tiên Flash Sale > Promotion
+            if flash_sale:
+                flash_discount = (base_price * Decimal(str(flash_sale.discount_percent or 0)) / Decimal("100")).quantize(Decimal("1"))
+                effective_price = max(base_price - flash_discount, Decimal("0"))
+                flash_price = effective_price
+            elif promotion:
+                promotion_discount = (base_price * Decimal(str(promotion.discount_percent or 0)) / Decimal("100")).quantize(Decimal("1"))
+                effective_price = max(base_price - promotion_discount, Decimal("0"))
+            else:
+                effective_price = base_price
 
-        effective_price = max(base_price - flash_discount - promotion_discount, Decimal("0"))
-        return {
-            "variant_price": base_price,
-            "flash_discount": flash_discount,
-            "flash_price": flash_price,
-            "promotion_discount": promotion_discount,
-            "effective_price": effective_price,
-        }
+            # Tính tổng số tiền tiết kiệm được từ khuyến mãi (trước Voucher)
+            total_savings = base_price - effective_price
 
+            return {
+                "variant_price": base_price,       # Giá gốc niêm yết
+                "flash_discount": flash_discount,
+                "flash_price": flash_price,
+                "promotion_discount": promotion_discount,
+                "effective_price": effective_price, # Giá thực tế sau FlashSale/Promotion
+                "total_savings": total_savings,     # Số tiền tiết kiệm được hiện trên UI
+            }
     @staticmethod
     def _get_active_flash_sale(variant_id: int) -> FlashSale | None:
         now = datetime.now(timezone.utc)
@@ -571,5 +619,7 @@ class CheckoutService:
         return state
 
     @staticmethod
-    def _money(value: Decimal | int | float | str | None) -> float:
-        return float(Decimal(str(value or 0)).quantize(Decimal("0.01")))
+    def _money(value: Any) -> float:
+        if value is None:
+            return 0.0
+        return float(Decimal(str(value)).quantize(Decimal("1"), rounding="ROUND_HALF_UP"))

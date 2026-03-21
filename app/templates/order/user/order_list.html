@@ -1,50 +1,93 @@
-<!-- templates/order/user/order_list.html -->
-
 {% extends "layouts/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order.css') }}">
+{% endblock %}
+
 {% block content %}
-
-<h2>Đơn hàng của tôi</h2>
-
-<div class="order-tabs">
-    {% set tabs = [("ALL","Tất cả"),("PENDING","Chờ xác nhận"),("CONFIRMED","Đã xác nhận"),("PREPARING","Đang chuẩn bị"),("SHIPPING","Đang giao"),("DELIVERED","Đã giao"),("CANCELLED","Đã hủy")] %}
-    {% for value, label in tabs %}
-    <a href="{{ url_for('order.user_order_list', status=value) }}" class="order-tab {% if status == value %}active{% endif %}">{{ label }}</a>
-    {% endfor %}
-</div>
-
-{% if orders %}
-<table class="order-table">
-    <thead>
-        <tr>
-            <th>Shop</th>
-            <th>Mã đơn</th>
-            <th>Ngày đặt</th>
-            <th>Tổng tiền</th>
-            <th>Trạng thái</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in orders %}
-        <tr>
-            <td>{{ order.items[0].product.shop.name if order.items and order.items[0].product and order.items[0].product.shop else "Shop" }}</td>
-            <td>{{ order.order_code }}</td>
-            <td>{{ order.created_at.strftime("%d/%m/%Y %H:%M") if order.created_at else "" }}</td>
-            <td>{{ "{:,.0f}".format(order.total_price or 0) }}đ</td>
-            <td>
-                {% include "order/components/order_status_badge.html" %}
-            </td>
-            <td>
-                <a href="{{ url_for('order.user_order_detail', order_id=order.id) }}">
-                    Xem chi tiết
-                </a>
-            </td>
-        </tr>
+<div class="order-container">
+    <!-- Tabs Thanh điều hướng trạng thái -->
+    <div class="order-tabs">
+        {% set tabs = [("ALL","Tất cả"),("PENDING","Chờ xác nhận"),("CONFIRMED","Đã xác nhận"),("PREPARING","Đang chuẩn bị"),("SHIPPING","Đang giao"),("DELIVERED","Đã giao"),("CANCELLED","Đã hủy")] %}
+        {% for value, label in tabs %}
+        <a href="{{ url_for('order.user_order_list', status=value) }}" 
+           class="order-tab {% if status == value %}active{% endif %}">
+            {{ label }}
+        </a>
         {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Chưa có đơn hàng nào.</p>
-{% endif %}
+    </div>
 
+    <!-- Danh sách đơn hàng dạng Card -->
+    {% if orders %}
+        <div class="order-list">
+            {% for order in orders %}
+<div class="order-card">
+    <!-- Header: Shop info bên trái, Trạng thái bên phải -->
+    <div class="order-card__header">
+        <div class="shop-info">
+            <span class="shop-name">
+                <i class="shop-icon">🏪</i> 
+                Shop #{{ order.shop_id }}
+            </span>
+            <a href="{{ url_for('product.public_shop_page', shop_id=order.shop_id) }}" class="btn-view-shop">
+                Xem Shop
+            </a>
+        </div>
+
+        <div class="order-status-container">
+            {# Chỉ include 1 lần duy nhất ở đây #}
+            {% include "order/components/order_status_badge.html" %}
+        </div>
+    </div>
+
+    <!-- Nội dung đơn hàng -->
+    <a href="{{ url_for('order.user_order_detail', order_id=order.id) }}" class="order-card__content">
+        {% if order.items %}
+            {% set first_item = order.items[0] %}
+            <div class="product-item">
+                <div class="product-image">
+                    <img src="{{ first_item.product_thumbnail if first_item.product_thumbnail else '/static/images/no-image.png' }}" alt="">
+                </div>
+                <div class="product-details">
+                    <h4 class="product-name">{{ first_item.product_name }}</h4>
+                    <p class="product-variant">
+                        Phân loại hàng: {{ first_item.variant.name if first_item.variant else "Mặc định" }}
+                    </p>
+                    <span class="product-quantity">x{{ first_item.quantity }}</span>
+                </div>
+                <div class="product-price">
+                    ₫{{ "{:,.0f}".format(first_item.price or 0) }}
+                </div>
+            </div>
+            {% if order.items|length > 1 %}
+            <div class="more-items">Xem thêm {{ order.items|length - 1 }} sản phẩm</div>
+            {% endif %}
+        {% endif %}
+    </a>
+
+    <!-- Footer: Tổng tiền và Action -->
+    <div class="order-card__footer">
+        <div class="total-section">
+            <span class="total-label">Thành tiền:</span>
+            <span class="total-amount">₫{{ "{:,.0f}".format(order.total_price or 0) }}</span>
+        </div>
+        <div class="action-section">
+            <a href="{{ url_for('order.user_order_detail', order_id=order.id) }}" class="btn btn-detail">Xem chi tiết</a>
+            {% if order.items %}
+                <a href="{{ url_for('product.product_detail', id=order.items[0].product_id) }}" class="btn btn-primary">Mua lại</a>
+            {% else %}
+                <button class="btn btn-primary" disabled>Mua lại</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-order">
+            <img src="https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/assets/5fafbb923393a712b96488592e8f7660.png" alt="">
+            <p>Chưa có đơn hàng nào</p>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

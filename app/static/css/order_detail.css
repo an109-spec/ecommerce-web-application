@@ -1,0 +1,291 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+.order-detail-container {
+    font-family: 'Roboto', -apple-system, Helvetica Neue, Helvetica, Arial, Sans-Serif;
+    max-width: 900px;
+    margin: 20px auto;
+    color: #000000de; /* Màu chữ chuẩn Shopee */
+    background: #f5f5f5;
+    line-height: 1.5;
+}
+.detail-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 20px;
+    border-bottom: 1px solid #f1f1f1;
+    margin-bottom: 1px;
+}
+
+.btn-back {
+    text-decoration: none;
+    color: #555;
+    font-size: 14px;
+}
+
+.header-info {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.order-id {
+    font-weight: 500;
+}
+
+/* Card Style */
+.detail-card {
+    background: #fff;
+    padding: 24px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.section-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+/* Address Section */
+.address-content {
+    display: flex;
+    gap: 15px;
+}
+
+.address-icon {
+    font-size: 20px;
+    color: #ee4d2d;
+}
+
+.customer-name {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+/* Product Section */
+.shop-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f1f1;
+    margin-bottom: 15px;
+}
+
+.shop-badge {
+    background: #ee4d2d;
+    color: #fff;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+.product-item {
+    display: flex;
+    gap: 15px;
+    padding: 12px 0;
+    border-bottom: 1px solid #fafafa;
+}
+
+.product-img img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border: 1px solid #eee;
+}
+
+.product-info {
+    flex: 1;
+}
+
+.product-info .name {
+    font-weight: 400;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.product-info .variant {
+    color: #888;
+    font-size: 13px;
+}
+
+.product-price {
+    color: #ee4d2d;
+}
+
+/* Payment Section */
+.payment-card {
+    text-align: right;
+}
+
+.payment-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 50px;
+    padding: 8px 0;
+}
+
+.payment-row span:first-child {
+    color: rgba(0,0,0,.54);
+}
+
+.payment-row.total {
+    border-top: 1px dashed #eee;
+    margin-top: 10px;
+    padding-top: 20px;
+}
+
+.total-value {
+    color: #ee4d2d;
+    font-size: 28px;
+    font-weight: 500;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 30px;
+    border-radius: 2px;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,.09);
+}
+
+.btn-cancel-order {
+    background: #fff;
+    color: #555;
+}
+
+.btn-cancel-order:hover {
+    background: #f8f8f8;
+}
+
+.btn-primary {
+    background: #ee4d2d;
+    color: #fff;
+    border: none;
+}
+
+/* Review Form */
+.review-item {
+    background: #fafafa;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 4px;
+}
+
+.rating-input {
+    margin: 10px 0;
+}
+
+.input-star {
+    width: 50px;
+    padding: 4px;
+}
+
+textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    margin-top: 8px;
+}
+.address-card {
+    border-top: 4px solid #ee4d2d; /* Thanh cam trên cùng giống Shopee */
+    padding: 20px;
+    background: #fff;
+}
+
+.address-info .customer-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #000000de;
+    margin-bottom: 5px;
+    text-transform: capitalize;
+}
+
+.address-info .customer-phone, 
+.address-info .customer-text {
+    font-size: 14px;
+    color: #0000008a; /* Màu chữ xám nhẹ cho thông tin phụ */
+    margin-bottom: 3px;
+    line-height: 1.6;
+}
+
+/* Làm đẹp thanh Trạng thái (Timeline) */
+.timeline-card {
+    border-bottom: 1px solid #ebebeb;
+    padding: 30px 20px;
+}
+
+/* Container tổng */
+.shopee-timeline-container {
+    padding: 10px 0 10px 20px;
+}
+
+/* Từng bước trong timeline */
+.timeline-step {
+    display: flex;
+    position: relative;
+    padding-bottom: 25px; /* Khoảng cách giữa các bước */
+}
+
+/* Trục dọc (Chứa chấm và đường kẻ) */
+.timeline-axis {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 15px;
+    width: 12px;
+}
+
+/* Chấm tròn */
+.step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #e0e0e0; /* Màu xám cho bước chưa tới */
+    z-index: 2;
+    margin-top: 5px;
+}
+
+/* Đường kẻ nối */
+.step-line {
+    position: absolute;
+    top: 15px;
+    bottom: 0;
+    width: 2px;
+    background: #e0e0e0;
+    z-index: 1;
+}
+
+/* Hiệu ứng khi bước đó "Active" (Đã hoặc đang thực hiện) */
+.timeline-step.step--active .step-dot {
+    background: #26aa99; /* Màu xanh ngọc chuẩn Shopee */
+    box-shadow: 0 0 0 3px rgba(38, 170, 153, 0.2);
+}
+
+.timeline-step.step--active .step-line {
+    background: #26aa99;
+}
+
+.timeline-step.step--active .step-label {
+    color: #26aa99;
+    font-weight: 500;
+}
+
+/* Nội dung văn bản */
+.step-content {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    font-size: 14px;
+}
+
+.step-label {
+    color: rgba(0,0,0,.54);
+}
+
+.step-time {
+    color: rgba(0,0,0,.26);
+    font-size: 12px;
+}

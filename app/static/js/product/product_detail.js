@@ -403,28 +403,15 @@ function renderRelated(items) {
   }).join('');
 }
 
-  function renderReviews(items) {
-    if (!window.ProductReview) {
-    reviewEl.innerHTML = '<p>Lỗi load review component</p>';
-    return;
-  }
-
-  reviewEl.innerHTML =
-    (items || []).map((r) => window.ProductReview.renderItem(r)).join('')
-    || '<p>Chưa có đánh giá.</p>';
-}
-
   async function loadAll() {
-    const [productRes, relatedRes, reviewsRes] = await Promise.all([
+    const [productRes, relatedRes] = await Promise.all([
       fetch(`${endpointBase}/${productId}`),
-      fetch(`${endpointBase}/${productId}/related`),
-      fetch(`${endpointBase}/${productId}/reviews`)
+      fetch(`${endpointBase}/${productId}/related`)
     ]);
 
     const productData = await productRes.json();
     console.log("PRODUCT DATA:", productData);
     const relatedData = await relatedRes.json();
-    const reviewData = await reviewsRes.json();
 
     // ❗ CHECK API ERROR
     if (!productRes.ok || productData.error) {
@@ -434,11 +421,11 @@ function renderRelated(items) {
 
     renderProduct(productData);
     renderRelated(relatedData.items || []);
-    renderReviews(reviewData.items || []);
+    // renderReviews(reviewData.items || []);
     if (window.ProductQR) window.ProductQR.bind(productId);
   }
 
-  reviewForm?.addEventListener('submit', async (e) => {
+reviewForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(reviewForm);
     const payload = {
@@ -447,16 +434,21 @@ function renderRelated(items) {
       comment: fd.get('comment')
     };
 
-    await fetch(`${endpointBase}/${productId}/reviews`, {
+    const res = await fetch(`${endpointBase}/${productId}/reviews`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    const refreshed = await fetch(`${endpointBase}/${productId}/reviews`);
-    renderReviews((await refreshed.json()).items || []);
-    reviewForm.reset();
-  });
+    if (res.ok) {
+        // Gọi hàm load của file review.js để cập nhật lại danh sách và số sao
+        if (typeof loadProductReviews === 'function') {
+            loadProductReviews(); 
+        }
+        reviewForm.reset();
+        alert("Gửi đánh giá thành công!");
+    }
+});
 
   loadAll();
 

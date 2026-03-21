@@ -93,22 +93,25 @@ def unfollow_shop(shop_id: int):
         return jsonify({"error": str(e)}), e.status_code
 
 
-@product_bp.route("/products", methods=["GET"])
+@product_bp.route('/products', methods=['GET'])
 def list_products():
-    try:
-        page, per_page = _parse_pagination()
-        result = ProductService.list_products(
-            keyword=request.args.get("keyword"),
-            min_price=request.args.get("min_price"),
-            max_price=request.args.get("max_price"),
-            category=request.args.get("category"),
-            sort=request.args.get("sort"),
-            page=page,
-            per_page=per_page,
-        )
-        return jsonify(result), 200
-    except AppException as e:
-        return jsonify({"error": str(e)}), e.status_code
+    keyword = request.args.get('keyword') or request.args.get('q')
+    category_ids = request.args.getlist('category_id')
+    freeship = request.args.get('freeship')
+
+    print(f"--- API CHECK: keyword={keyword}, categories={category_ids} ---")
+
+    result = ProductService.list_products(
+        keyword=keyword,
+        category_ids=category_ids,
+        min_price=request.args.get('min_price'),
+        max_price=request.args.get('max_price'),
+        freeship=freeship,
+        sort=request.args.get('sort'),
+        page=request.args.get('page', 1, type=int),
+        per_page=request.args.get('per_page', 10, type=int)
+    )
+    return jsonify(result)
 
 
 @product_bp.route("/products/<int:id>", methods=["GET"])
@@ -155,10 +158,70 @@ def delete_product(id: int):
 @product_bp.route("/products/<int:id>/reviews", methods=["GET"])
 def get_reviews(id: int):
     try:
-        reviews = ProductService.get_product_reviews(id)
-        return jsonify({"items": reviews, "total": len(reviews), "page": 1, "per_page": len(reviews)}), 200
-    except AppException as e:
-        return jsonify({"error": str(e)}), e.status_code
+        from app.modules.product.service import ProductService
+        raw_reviews = ProductService.get_product_reviews(id)
+        
+        processed_reviews = []
+        counts = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "comment": 0}
+        total_rating = 0
+
+        # Nếu chưa có ai đánh giá
+        if not raw_reviews:
+            return jsonify({
+                "reviews": [],
+                "average_rating": 0,
+                "counts": counts,
+                "total": 0
+            }), 200
+
+        for rev in raw_reviews:
+            # Lấy dữ liệu từ Dictionary an toàn tuyệt đối
+            rating = int(rev.get('rating', 5))
+            comment = rev.get('comment', '')
+            user_id = rev.get('user_id')
+            created_at = rev.get('created_at', '')
+
+            counts[str(rating)] = counts.get(str(rating), 0) + 1
+            if comment:
+                counts["comment"] += 1
+            total_rating += rating
+
+            # Tạm thời gán cứng tên User để loại trừ lỗi import Model
+            user_name = "Người dùng OneShop"
+            if user_id:
+                try:
+                    from app.models.user import User
+                    user = User.query.get(user_id)
+                    if user and user.username:
+                        user_name = user.username
+                except Exception:
+                    user_name = f"Người dùng #{user_id}"
+
+            processed_reviews.append({
+                "user_name": user_name,
+                "rating": rating,
+                "comment": comment,
+                "created_at": str(created_at)[:10] if created_at else ""
+            })
+
+        avg_rating = round(total_rating / len(raw_reviews), 1)
+
+        return jsonify({
+            "reviews": processed_reviews,
+            "average_rating": avg_rating,
+            "counts": counts,
+            "total": len(raw_reviews)
+        }), 200
+
+    except Exception as e:
+        # IN CHI TIẾT LỖI RA TERMINAL PYTHON ĐỂ DEBUG
+        import traceback
+        print("\n" + "="*50)
+        print("LỖI TẠI GET_REVIEWS:")
+        traceback.print_exc()
+        print("="*50 + "\n")
+        
+        return jsonify({"error": str(e)}), 500
 
 
 @product_bp.route("/products/<int:id>/reviews", methods=["POST"])

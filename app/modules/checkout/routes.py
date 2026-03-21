@@ -38,7 +38,11 @@ def init_checkout():
 @checkout_bp.route("/data", methods=["GET"])
 def checkout_data():
     try:
-        data = CheckoutService.get_current_checkout(_resolve_user_id(), auto_init_from_cart=True)
+        user_id = _resolve_user_id()
+        # Thêm dòng này để xóa state cũ, ép Service phải tính lại từ giỏ hàng và DB mới nhất
+        session.pop('checkout_state', None) 
+        
+        data = CheckoutService.get_current_checkout(user_id, auto_init_from_cart=True)
         return jsonify(data), 200
     except AppException as exc:
         return jsonify({"error": str(exc)}), exc.status_code
@@ -57,6 +61,8 @@ def apply_voucher():
         # ✅ validate trước
         if not shop_id:
             return jsonify({"error": "Thiếu shop_id"}), 422
+        if not voucher_code and not voucher_id:
+            return jsonify({"error": "Vui lòng nhập mã hoặc chọn voucher"}), 422
 
         data = CheckoutService.apply_voucher(
             user_id,

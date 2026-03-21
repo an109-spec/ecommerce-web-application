@@ -12,13 +12,24 @@
 
   const state = { page: 1, per_page: 10, total: 0 };
 
-  function card(item) {
+function card(item) {
+    const freeshipBadge = item.is_freeship 
+      ? `<div class="freeship-badge-chay">
+          <i class="fas fa-shipping-fast"></i> Freeship
+         </div>` 
+      : '';
+
     return `
       <article class="product-card">
-        <img src="${item.thumbnail || ''}" alt="${item.name}" class="product-card__thumb">
+        <div class="product-card__img-container">
+          ${freeshipBadge}
+          <img src="${item.thumbnail || ''}" alt="${item.name}" class="product-card__thumb">
+        </div>
         <h4 class="product-card__name">${item.name}</h4>
-        <p class="product-card__price">${item.price}</p>
-        <a class="btn btn--outline" href="/product/${item.id}">Xem chi tiết</a>
+        <p class="product-card__price">₫${Number(item.price).toLocaleString()}</p>
+        <div class="product-card__actions">
+            <a class="btn btn--outline" href="/shop/${item.id}">Xem chi tiết</a>
+        </div>
       </article>`;
   }
 
@@ -34,15 +45,20 @@
   }
 
   async function load() {
-    const params = new URLSearchParams({ page: state.page, per_page: state.per_page });
-    const filter = window.ProductFilter ? window.ProductFilter.read() : {};
-    Object.entries(filter).forEach(([k, v]) => params.set(k, v));
-    if (window.ProductSort) params.set('sort', window.ProductSort.read());
+      const params = new URLSearchParams({ page: state.page, per_page: state.per_page });
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      urlParams.forEach((v, k) => params.set(k, v));
 
-    const res = await fetch(`${endpoint}?${params.toString()}`);
-    const data = await res.json();
-    render(data);
-  }
+      const filter = window.ProductFilter ? window.ProductFilter.read() : {};
+      Object.entries(filter).forEach(([k, v]) => params.set(k, v));
+      
+      if (window.ProductSort) params.set('sort', window.ProductSort.read());
+
+      const res = await fetch(`${endpoint}?${params.toString()}`);
+      const data = await res.json();
+      render(data);
+    }
 
   filterForm?.addEventListener('submit', (e) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-from app.common.exceptions import ValidationError
+from app.common.exceptions import ValidationError, AppException
 from app.extensions.db import db
 from app.models.order import OrderTracking
 from app.core.enums.order_status import OrderStatus
@@ -22,25 +22,30 @@ def validate_transition(old_status: OrderStatus, new_status: OrderStatus):
         )
 
 
-def apply_transition(order, new_status: OrderStatus):
-    validate_transition(order.status, new_status)
+# Trong OrderService hoặc logic xử lý transition
+@staticmethod
+def apply_transition(order, next_status):
+    # Định nghĩa các bước đi hợp lệ
+    valid_transitions = {
+        OrderStatus.PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+        OrderStatus.CONFIRMED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+        OrderStatus.PREPARING: [OrderStatus.SHIPPING, OrderStatus.CANCELLED],
+        OrderStatus.SHIPPING: [OrderStatus.DELIVERED],
+    }
 
-    order.status = new_status
+    current = order.status
+    if next_status not in valid_transitions.get(current, []):
+        raise AppException(f"Không thể chuyển trạng thái từ {current.value} sang {next_status.value}")
+
+    order.status = next_status
+    
+    # Cập nhật timestamp tương ứng
     now = datetime.now(timezone.utc)
-    if new_status == OrderStatus.CONFIRMED:
-        order.confirmed_at = order.confirmed_at or now
-    if new_status == OrderStatus.PREPARING:
-        order.preparing_at = order.preparing_at or now
-    if new_status == OrderStatus.SHIPPING:
-        order.shipping_at = order.shipping_at or now
-    if new_status == OrderStatus.DELIVERED:
-        order.delivered_at = order.delivered_at or now
-    tracking = OrderTracking(
-        order_id=order.id,
-        status=new_status
-    )
-
-    db.session.add(tracking)
+    if next_status == OrderStatus.CONFIRMED: order.confirmed_at = now
+    elif next_status == OrderStatus.PREPARING: order.preparing_at = now
+    elif next_status == OrderStatus.SHIPPING: order.shipping_at = now
+    elif next_status == OrderStatus.DELIVERED: order.delivered_at = now
+    
     db.session.commit()
 
 

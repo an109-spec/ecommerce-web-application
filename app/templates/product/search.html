@@ -3,17 +3,62 @@
 {% block title %}Tìm kiếm sản phẩm{% endblock %}
 
 {% block styles %}
+<style>
+    /* Hiệu ứng chuyên nghiệp cho Card sản phẩm */
+    .product-card {
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid #f0f0f0;
+        display: flex;
+        flex-direction: column;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border-color: #ff4d4f;
+    }
+    #internal-search-input:focus { border-color: #ff4d4f; }
+</style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/product/product_list.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/product/product_card.css') }}">
+
 {% endblock %}
 
 {% block content %}
-<section id="product-search-page" data-endpoint-products="/products">
-  <h1>Tìm kiếm</h1>
-  <input id="search-keyword" placeholder="Nhập từ khóa sản phẩm...">
-  <button id="search-button" class="btn btn--primary">Tìm</button>
-  <div id="search-result" class="product-grid"></div>
-</section>
+<div id="product-search-page" class="container" style="margin-top: 30px;">
+    <!-- Thanh tìm kiếm nội bộ chuyên nghiệp -->
+    <div class="search-header-box" style="background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px;">
+        <h2 style="margin-bottom: 15px; font-size: 1.5rem; color: #333;">Tìm kiếm sản phẩm</h2>
+        <div class="input-group-custom" style="display: flex; gap: 10px;">
+            <input type="text" id="internal-search-input" placeholder="Nhập tên sản phẩm bạn muốn tìm..." 
+                   style="flex: 1; padding: 12px 20px; border: 2px solid #eee; border-radius: 8px; outline: none; transition: border-color 0.3s;">
+            <button id="internal-search-btn" style="background: linear-gradient(to right, #ff4d4f, #ff7875); color: white; border: none; padding: 0 30px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                TÌM KIẾM
+            </button>
+        </div>
+    </div>
+
+    <!-- Phần 1: Kết quả tìm kiếm -->
+    <div class="result-section">
+        <h3 id="search-title" style="margin-bottom: 20px; color: #555; border-left: 4px solid #ff4d4f; padding-left: 15px;">Kết quả tìm kiếm</h3>
+        <div id="search-result" class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px;">
+            <!-- JS sẽ đổ dữ liệu vào đây -->
+        </div>
+    </div>
+
+    <!-- Khoảng cách -->
+    <div style="margin: 50px 0; border-top: 1px solid #eee;"></div>
+
+    <!-- Phần 2: Sản phẩm gợi ý (Luôn hiển thị) -->
+    <div class="suggestion-section">
+        <h3 style="margin-bottom: 20px; color: #555; border-left: 4px solid #52c41a; padding-left: 15px;">Có thể bạn quan tâm</h3>
+        <div id="suggested-result" class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px;">
+            <!-- JS sẽ đổ sản phẩm gợi ý vào đây -->
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

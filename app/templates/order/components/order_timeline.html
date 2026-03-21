@@ -1,8 +1,21 @@
-<ul class="timeline">
+<div class="shopee-timeline-container">
     {% for step in timeline %}
-    <li class="{% if step.active %}active{% endif %}">
-        <span>{{ "●" if step.active else "○" }} {{ step.label }}</span>
-        <small>{{ step.time }}</small>
-    </li>
+    <div class="timeline-step {% if step.active %}step--active{% endif %}">
+        <!-- Điểm mốc và đường kẻ -->
+        <div class="timeline-axis">
+            <div class="step-dot"></div>
+            {% if not loop.last %}
+            <div class="step-line"></div>
+            {% endif %}
+        </div>
+        
+        <!-- Nội dung trạng thái -->
+        <div class="step-content">
+            <div class="step-label">{{ step.label }}</div>
+            {% if step.time %}
+            <div class="step-time">{{ step.time }}</div>
+            {% endif %}
+        </div>
+    </div>
     {% endfor %}
-</ul>
+</div>

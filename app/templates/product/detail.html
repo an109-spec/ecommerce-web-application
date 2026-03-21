@@ -5,28 +5,52 @@
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/product/product_detail.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/product/product_card.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/product/review.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/review.css') }}">
 {% endblock %}
 
 {% block content %}
+<!-- C:\DO_AN_TOT_NGHIEP\app\templates\product\detail.html -->
+
 <section id="product-detail-page" data-product-id="{{ product_id or '' }}" data-endpoint-base="/products">
   <div id="product-detail"></div>
 
   <h3>Sản phẩm liên quan</h3>
   <div id="related-products" class="product-grid"></div>
 
-  <h3>Đánh giá</h3>
-  <div id="review-list"></div>
+  <div class="product-reviews-container">
+    <h3 class="review-title">ĐÁNH GIÁ SẢN PHẨM</h3>
+    
+    <div class="review-header-box">
+        <div class="rating-overview__brief">
+            <div><span class="rating-overview__score">5</span> <span class="rating-overview__score-out-of">trên 5</span></div>
+                <div class="rating-overview__stars">
+            <div class="stars-static">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+            </div>
+            </div>
+        </div>
+        <div class="review-filter-group">
+            <div class="btn-filter active" data-star="all">Tất Cả</div>
+            <div class="btn-filter" data-star="5">5 Sao (0)</div>
+            <div class="btn-filter" data-star="4">4 Sao (0)</div>
+            <div class="btn-filter" data-star="3">3 Sao (0)</div>
+            <div class="btn-filter" data-star="2">2 Sao (0)</div>
+            <div class="btn-filter" data-star="1">1 Sao (0)</div>
+            <div class="btn-filter" data-star="comment">Bình Luận (0)</div>
+        </div>
+    </div>
 
-  <form id="review-form" class="review-form">
-    <input type="number" name="user_id" placeholder="User ID" required min="1">
-    <input type="number" name="rating" placeholder="Rating (1-5)" required min="1" max="5">
-    <textarea name="comment" placeholder="Nội dung đánh giá"></textarea>
-    <button type="submit" class="btn btn--primary">Gửi đánh giá</button>
+    <!-- Danh sách đánh giá sẽ render vào đây -->
+    <div id="review-list" class="review-list"></div>
+  </div>
+
+  <!-- Form ẩn đi hoặc xóa input thừa nếu bạn đánh giá từ trang Đơn hàng -->
+  <form id="review-form" class="review-form" style="display:none;">
+    <input type="number" name="rating" id="rating-value">
+    <textarea name="comment"></textarea>
+    <button type="submit">Gửi</button>
   </form>
 
-  <button id="open-qr" class="btn btn--outline">Xem QR</button>
-  {% include "product/components/qr_modal.html" %}
 </section>
 {% endblock %}
 

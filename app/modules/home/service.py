@@ -125,9 +125,10 @@ class HomeService:
         now = datetime.now(timezone.utc)
 
         try:
-            categories = Category.query.order_by(Category.name.asc()).limit(16).all()
-            if categories:
-                base["categories"] = [{"name": c.name} for c in categories]
+            all_categories = Category.query.order_by(Category.name.asc()).all()
+            if all_categories:
+                base["filter_categories"] = [{"id": c.id, "name": c.name} for c in all_categories]
+                base["categories"] = [{"id": c.id, "name": c.name} for c in all_categories[:16]]
 
             sold_subquery = (
                 OrderItem.query.with_entities(
@@ -153,7 +154,7 @@ class HomeService:
                     HomeService._product_card_payload(product, sold_count=sold)
                     for product, sold in top_rows
                 ]
-                base["top_search_items"] = top_cards[:4]
+                base["top_search_items"] = top_cards
                 base["recommended_items"] = top_cards
 
             flash_sales = (
@@ -164,7 +165,7 @@ class HomeService:
                     FlashSale.end_time >= now,
                 )
                 .order_by(FlashSale.end_time.asc())
-                .limit(4)
+                .limit(20)
                 .all()
             )
             flash_cards = []
@@ -172,12 +173,9 @@ class HomeService:
             flash_end = None
             for sale in flash_sales:
                 variant = ProductVariant.query.get(sale.variant_id)
-                if not variant:
+                if not variant or not (product := Product.query.get(variant.product_id)):
                     continue
 
-                product = Product.query.get(variant.product_id)
-                if not product:
-                    continue
                 sold_count = sale.sold_count or 0
                 sale_price = variant.price * (Decimal(1) - Decimal(sale.discount_percent) / Decimal(100))
                 card_payload = HomeService._product_card_payload(
@@ -186,6 +184,10 @@ class HomeService:
                     discount_percent=sale.discount_percent,
                     sale_price=sale_price,
                 )
+                card_payload["price"] = HomeService._to_float(variant.price)
+                card_payload["ends_at"] = sale.end_time.replace(tzinfo=timezone.utc).isoformat()
+                total_stock = (sale.stock_limit or 100)
+                card_payload["sold_percent"] = min(int((sold_count / total_stock) * 100), 100)
                 flash_cards.append(card_payload)
                 flash_map_by_product_id[product.id] = {
                     "discount_percent": sale.discount_percent,

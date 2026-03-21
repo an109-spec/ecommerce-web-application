@@ -29,10 +29,11 @@
 <header class="home-search-header">
   <div class="container home-search-header__inner">
     <a class="brand" href="/">OneShop</a>
-    <form class="search-form" action="/shop/search" method="get">
-      <input type="text" name="q" placeholder="Tìm kiếm sản phẩm..." />
-      <button type="submit">Tìm kiếm</button>
-    </form>
+
+  <form class="search-form" action="/shop/search" method="get">
+      <input type="text" name="q" placeholder="Tìm sản phẩm, shop, danh mục..." />
+      <button type="submit"><i class="fas fa-search"></i></button>
+  </form>
     <a class="cart" href="/cart">
       🛒
       <span class="cart-count">{{ cart_count or 0 }}</span>
@@ -48,112 +49,232 @@
 
 {% block content %}
 <section class="home-banner">
-  <div class="banner-main">
-    <h2>{{ hero_banners[0].title }}</h2>
-    <p>{{ hero_banners[0].subtitle }}</p>
-    <a href="{{ hero_banners[0].link }}">Mua ngay</a>
-  </div>
-  <div class="banner-side">
-    {% for item in hero_banners[1:] %}
-      <article>
-        <h3>{{ item.title }}</h3>
-        <p>{{ item.subtitle }}</p>
-        <a href="{{ item.link }}">Xem thêm</a>
-      </article>
-    {% endfor %}
-  </div>
-</section>
+    <div class="banner-main-hero">
+        <div class="hero-slider-wrapper">
+            {% for item in flash_sale["items"] %}
+            <div class="hero-slide {% if loop.first %}active{% endif %}">
+                <div class="hero-bg-overlay" style="background-image: url('{{ item.image }}');"></div>
+                <div class="hero-content">
+                    <div class="hero-text-badge">SALE KHỦNG {{ item.discount_percent }}%</div>
+                    <h2 class="hero-product-name">{{ item.name }}</h2>
+                    <p class="hero-price">
+                        <span class="old">₫{{ '{:,.0f}'.format(item.price) }}</span>
+                        <span class="new">₫{{ '{:,.0f}'.format(item.sale_price) }}</span>
+                    </p>
+                    <a href="{{ item.product_url }}" class="hero-btn-fire">SĂN DEAL NGAY 🚀</a>
+                </div>
+                <div class="hero-image-main">
+                    <img src="{{ item.image }}" alt="{{ item.name }}">
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="hero-nav">
+            <button onclick="changeHeroSlide(-1)">❮</button>
+            <button onclick="changeHeroSlide(1)">❯</button>
+        </div>
+    </div>
 
-<section class="feature-icons">
-  {% for item in feature_items %}
-    <a href="{{ item.link }}">
-      <span>{{ item.icon }}</span>
-      <p>{{ item.label }}</p>
-    </a>
-  {% endfor %}
+    <div class="banner-side-v2">
+        <article class="side-card ship-card" onclick="window.location.href='/shop?freeship=1'">
+            <div class="card-icon">🚚</div>
+            <div class="card-info">
+                <h4>MIỄN PHÍ VẬN CHUYỂN</h4>
+                <p>Đơn từ 0đ - Toàn quốc</p>
+            </div>
+        </article>
+
+    <!-- TÌM ĐOẠN NÀY TRONG FILE CỦA BẠN -->
+    <article class="side-card voucher-card" 
+            onclick="window.location.href='{{ url_for('promotion.public_vouchers') }}'" 
+            style="cursor: pointer;">
+        <div class="card-icon">🎟️</div>
+        <div class="card-info">
+            <h4>KHO VOUCHER</h4>
+            <div class="mini-vouchers">
+                <span title="Click để xem tất cả">XEM NGAY</span>
+            </div>
+        </div>
+    </article>
+    </div>
 </section>
 
 <section class="home-section category-grid">
-  <h2>Danh mục</h2>
+  <h2 class="glow-title">🏷️ DANH MỤC NỔI BẬT</h2>
   <div class="grid">
     {% for category in categories %}
-      <a href="/shop/search?q={{ category.name }}" class="category-card">
-        <span>📦</span>
-        <p>{{ category.name }}</p>
+      <!-- Thêm data-name="{{ category.name }}" -->
+      <a href="/shop/search?category_id={{ category.id }}" 
+         class="category-card--colorful" 
+         data-name="{{ category.name }}">
+        <span class="category-icon"></span> <!-- Để trống để CSS tự chèn icon -->
+        <p class="category-name">{{ category.name }}</p>
       </a>
     {% endfor %}
   </div>
 </section>
 
-<section class="home-section" id="flash-sale">
+<!-- Tìm section id="flash-sale" và thay thế bằng nội dung này -->
+<section class="home-section flash-sale-fire" id="flash-sale">
   <div class="section-title-row">
-    <h2>Flash Sale</h2>
-    <div id="flash-countdown" data-ends-at="{{ flash_sale.ends_at_iso or '' }}">00:00:00</div>
-  </div>
-<div class="flash-sale-wrapper">
-  <button class="flash-nav flash-prev">&lt;</button>
-  <div class="flash-sale-container">
-    <div class="flash-sale-scroll">
-      {% for item in flash_sale["items"] %}
-        <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
-          <div class="product-card__image-wrap">
-            <img src="{{ item.image or '/static/images/no-image.png' }}" alt="{{ item.name }}">
-            {% if item.discount_percent %}<span class="flash-badge">-{{ item.discount_percent }}%</span>{% endif %}
-          </div>
-          <h3>{{ item.name }}</h3>
-          <p class="price">₫{{ '{:,.0f}'.format(item.sale_price if item.sale_price is not none else item.price) }}</p>
-          <small>Đã bán {{ item.sold }}</small>
-        </a>
-      {% endfor %}
+    <div class="title-left">
+      <h2 class="fire-text">⚡ FLASH SALE</h2>
     </div>
+    <!-- Bỏ countdown chung ở đây vì ta sẽ đưa vào từng card -->
   </div>
-  <button class="flash-nav flash-next">&gt;</button>
-</div>
+
+  <div class="flash-sale-wrapper">
+    <button class="flash-nav flash-prev">&lt;</button>
+    <div class="flash-sale-container">
+      <div class="flash-sale-scroll">
+        {% for item in flash_sale["items"] %}
+          <div class="product-card flash-item" data-ends-at="{{ item.ends_at }}">
+            <a href="{{ item.product_url }}">
+              <div class="product-card__image-wrap">
+                <img src="{{ item.image }}" alt="{{ item.name }}">
+                <div class="flash-badge-fire">
+                    <span class="fire-icon">🔥</span>
+                    Giảm {{ item.discount_percent }}%
+                </div>
+              </div>
+              <div class="item-info">
+                <h3 class="product-name">{{ item.name }}</h3>
+                <div class="price-row">
+                    <p class="sale-price">₫{{ '{:,.0f}'.format(item.sale_price) }}</p>
+                    <p class="old-price">₫{{ '{:,.0f}'.format(item.price) }}</p>
+                </div>
+                
+                <!-- Thanh progress "Đã bán" -->
+                <div class="flash-progress-bar">
+                    <div class="progress-fill" style="width: {{ item.sold_percent }}%;"></div>
+                    <span>Đã bán {{ item.sold }}</span>
+                </div>
+
+                <!-- Countdown riêng cho từng item -->
+                <div class="item-countdown-box">
+                    Kết thúc sau: <span class="item-timer">00:00:00</span>
+                </div>
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <button class="flash-nav flash-next">&gt;</button>
+  </div>
 </section>
 
-<section class="home-section">
-  <h2>Tìm kiếm hàng đầu</h2>
-  <div class="product-grid four-cols">
+<section class="home-section interest-section">
+  <div class="section-header-cool">
+    <h2 class="rainbow-text">✨ CÓ THỂ BẠN QUAN TÂM ✨</h2>
+  </div>
+  <div class="product-grid interest-grid">
     {% for item in top_search_items %}
-          <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
+      <a class="product-card premium-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
         <div class="product-card__image-wrap">
           <img src="{{ item.image or '/static/images/no-image.png' }}" alt="{{ item.name }}">
         </div>
-        <h3>{{ item.name }}</h3>
-        <p class="price">₫{{ '{:,.0f}'.format(item.price) }}</p>
-        <small>Hot • Đã bán {{ item.sold }}</small>
+        <div class="card-info">
+          <h3>{{ item.name }}</h3>
+          <p class="price-neon">₫{{ '{:,.0f}'.format(item.price) }}</p>
+          <div class="card-footer">
+            <span class="sold-text">🚀 Đã bán {{ item.sold }}</span>
+          </div>
+        </div>
       </a>
     {% endfor %}
   </div>
 </section>
 
-<section class="home-section recommended-products" id="recommended-products">
-  <div class="section-title-row">
-    <h2>Sản phẩm gợi ý</h2>
-    <div class="title-underline"></div>
+<section class="home-section recommended-section-premium" id="recommended-products">
+  <div class="section-header-wrap">
+    <h2 class="glow-title">🌟 DÀNH RIÊNG CHO BẠN 🌟</h2>
+    <div class="title-line"></div>
   </div>
-  <div class="recommended-scroll">
+  
+  <div class="recommended-grid">
     {% for item in recommended_items %}
-      <a class="product-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
+      <a class="product-card glass-card" href="{{ item.product_url or ('/shop/' ~ item.id) }}">
         <div class="product-card__image-wrap">
           <img src="{{ item.image or '/static/images/no-image.png' }}" alt="{{ item.name }}">
+          {% if item.rating and item.rating > 4.5 %}
+            <div class="top-rated-tag">Yêu thích</div>
+          {% endif %}
         </div>
-        <h3>{{ item.name }}</h3>
-        <p class="price">₫{{ '{:,.0f}'.format(item.price) }}</p>
-        <small>{% if item.rating and item.rating > 0 %}⭐ {{ item.rating }} • {% endif %}Đã bán {{ item.sold }}</small>
+        <div class="card-body">
+          <h3 class="product-title">{{ item.name }}</h3>
+          <div class="price-box">
+            <span class="currency">₫</span>
+            <span class="amount">{{ '{:,.0f}'.format(item.price) }}</span>
+          </div>
+          <div class="card-meta">
+            <span class="rating">{% if item.rating %}⭐ {{ item.rating }}{% endif %}</span>
+            <span class="sold-count">Đã bán {{ item.sold }}</span>
+          </div>
+        </div>
+        <div class="hover-action">Xem ngay</div>
       </a>
     {% endfor %}
   </div>
 </section>
 
-<section class="promotion-banners">
-  {% for banner in promotion_banners %}
-    <article>
-      <h3>{{ banner.title }}</h3>
-      <p>{{ banner.subtitle }}</p>
-      <a href="{{ banner.link }}">Khám phá</a>
-    </article>
-  {% endfor %}
+<section class="home-section filter-section-premium">
+    <div class="section-header-wrap">
+        <h2 class="glow-title">🔍 TÌM KIẾM THÔNG MINH</h2>
+        <div class="title-line"></div>
+    </div>
+
+    <form action="/shop/search" method="get" class="premium-filter-form">
+        <div class="filter-grid">
+            <!-- Nhập từ khóa -->
+            <div class="filter-group">
+                <label>Từ khóa</label>
+                <input type="text" name="q" placeholder="Bạn tìm gì hôm nay?">
+            </div>
+
+            <!-- Trong phần Chọn danh mục -->
+            <div class="filter-group" style="grid-column: span 2;"> <!-- Tăng độ rộng để dễ nhìn -->
+                <label style="font-weight: bold; margin-bottom: 10px; display: block;">Danh mục sản phẩm</label>
+                <div class="category-tags-container">
+                    {% for cat in filter_categories %}
+                        <label class="cat-tag">
+                            <input type="checkbox" name="category_id" value="{{ cat.id }}" class="cat-checkbox">
+                            <span class="tag-name">{{ cat.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Trong phần Khoảng giá -->
+            <div class="filter-group">
+                <label>Khoảng giá (₫)</label>
+                <div class="price-range-inputs">
+                    <input type="number" id="min_price_input" name="min_price" placeholder="Từ">
+                    <span>-</span>
+                    <input type="number" id="max_price_input" name="max_price" placeholder="Đến">
+                </div>
+                <div id="price-display-text" style="font-size: 0.85rem; color: #ff4d4f; margin-top: 5px; min-height: 1.2em;"></div>
+            </div>
+
+            <!-- Sắp xếp -->
+            <div class="filter-group">
+                <label>Sắp xếp</label>
+                <select name="sort">
+                    <option value="newest">Mới nhất</option>
+                    <option value="price_asc">Giá tăng dần</option>
+                    <option value="price_desc">Giá giảm dần</option>
+                    <option value="sold_desc">Bán chạy nhất</option>
+                </select>
+            </div>
+
+            <!-- Nút bấm -->
+            <div class="filter-group action-group">
+                <button type="submit" class="btn-fire-search">
+                    <span>🚀 LỌC NGAY</span>
+                </button>
+            </div>
+        </div>
+    </form>
 </section>
 
 <section class="footer-intro" id="footer-intro">

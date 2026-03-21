@@ -2,7 +2,7 @@ import uuid
 from decimal import Decimal
 from flask import session
 from app.extensions.db import db
-from app.models import Order, OrderItem, Product, OrderTracking, Review, User
+from app.models import Order, OrderItem, Product, OrderTracking, Review, User, order
 from app.common.exceptions import (
     NotFoundError,
     ValidationError,
@@ -22,9 +22,9 @@ class OrderService:
 
     @staticmethod
     def create_order_from_cart(user_id, payment_method):
+        from app.models.product import Product, ProductVariant # Import ở đầu hàm
 
         cart = session.get(OrderService.SESSION_KEY)
-
         if not cart or not cart.get("items"):
             raise ValidationError("Giỏ hàng trống")
 
@@ -47,36 +47,57 @@ class OrderService:
 
         for item in items.values():
             product = Product.query.get(item["product_id"])
-
             if not product:
-                raise NotFoundError("Sản phẩm không tồn tại")
+                raise NotFoundError(f"Sản phẩm ID {item['product_id']} không tồn tại")
+
+            # Lấy Variant tương ứng
+            variant_id = item.get("variant_id")
+            variant = ProductVariant.query.get(variant_id) if variant_id else None
+
+            # Nếu không có variant_id, lấy variant mặc định đầu tiên của sản phẩm
+            if not variant and product.variants:
+                variant = product.variants[0]
+            
+            if not variant:
+                raise ValidationError(f"Sản phẩm {product.name} chưa có thông tin giá và kho")
 
             quantity = int(item["quantity"])
 
-            if product.stock_quantity < quantity:
-                raise ValidationError("Không đủ tồn kho")
+            # KIỂM TRA TỒN KHO (Dùng variant.stock thay vì product.stock_quantity)
+            if variant.stock < quantity:
+                raise ValidationError(f"Sản phẩm {product.name} ({variant.sku or ''}) không đủ tồn kho")
 
-            subtotal = product.price * quantity
-            total += subtotal
+            # TÍNH GIÁ (Dùng variant.price)
+            item_price = variant.price
+            item_subtotal = item_price * quantity
+            total += item_subtotal
 
+            # TRỪ KHO
+            variant.stock -= quantity
+
+            # TẠO ORDER ITEM
             order_item = OrderItem(
                 order_id=order.id,
                 product_id=product.id,
-                price=product.price,
+                variant_id=variant.id, # Lưu variant_id để sau này biết khách mua mẫu nào
+                price=item_price,
                 quantity=quantity,
-                subtotal=subtotal,
+                subtotal=item_subtotal,
                 product_name=product.name or "",
-                product_thumbnail=product.thumbnail,
+                product_thumbnail=variant.image_url or product.thumbnail, # Ưu tiên ảnh của variant
             )
-
-            product.stock_quantity -= quantity
             db.session.add(order_item)
+
         order.subtotal = total
         order.total_price = total
-        db.session.commit()
+        
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            raise ValidationError("Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.")
 
         session.pop(OrderService.SESSION_KEY, None)
-
         return order
 
     @staticmethod
@@ -102,13 +123,29 @@ class OrderService:
             raise ValidationError("Không thể huỷ đơn ở trạng thái này")
 
         for item in order.items:
-            product = Product.query.get(item.product_id)
-            if product:
-                product.stock_quantity += item.quantity
+            from app.models.product import ProductVariant, Product
+            
+            # Luôn ưu tiên hoàn kho vào Variant trước
+            if item.variant_id:
+                variant = ProductVariant.query.get(item.variant_id)
+                if variant:
+                    variant.stock += item.quantity # Variant chắc chắn có trường .stock
+            else:
+                # Nếu không có variant_id, mới tìm theo product_id
+                product = Product.query.get(item.product_id)
+                if product:
+                    # KIỂM TRA: Nếu Product không có trường stock, hãy cộng vào variant đầu tiên
+                    if hasattr(product, 'stock'):
+                        product.stock += item.quantity
+                    elif product.variants:
+                        product.variants[0].stock += item.quantity
 
+        # Cập nhật trạng thái đơn hàng
+        order.status = OrderStatus.CANCELLED  # QUAN TRỌNG: Bạn đang thiếu dòng cập nhật status này!
         order.cancelled_by = by
         order.cancel_reason = reason
         order.cancelled_at = datetime.now(timezone.utc)
+        
         db.session.commit()
         return order
 

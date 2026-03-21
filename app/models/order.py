@@ -12,7 +12,8 @@ class Order(BaseModel):
         nullable=False,
         index=True
     )
-
+    shop_id = db.Column(db.BigInteger, db.ForeignKey("shops.id"), nullable=False, index=True)
+    address_id = db.Column(db.String(100), nullable=False)
     total_price = db.Column(
         db.Numeric(12, 2),
         nullable=False,
@@ -20,14 +21,14 @@ class Order(BaseModel):
     )
 
     status = db.Column(
-        db.Enum(OrderStatus, name="order_status"),
+        db.Enum(OrderStatus, name="order_status", native_enum=False), # Thêm native_enum=False
         nullable=False,
         default=OrderStatus.PENDING,
         index=True
     )
 
     payment_method = db.Column(
-        db.Enum(PaymentMethod, name="payment_method_enum"),
+        db.Enum(PaymentMethod, name="payment_method_enum", native_enum=False), # Thêm native_enum=False
         nullable=False
     )
     order_code = db.Column(
@@ -69,7 +70,7 @@ class OrderItem(BaseModel):
         db.ForeignKey("products.id"),
         nullable=False
     )
-
+    variant_id = db.Column(db.BigInteger, db.ForeignKey("product_variants.id"), nullable=True)
     price = db.Column(
         db.Numeric(12, 2),
         nullable=False
@@ -97,7 +98,8 @@ class OrderTracking(BaseModel):
         nullable=False
     )
     status = db.Column(
-    db.Enum(OrderStatus, name="order_status"),
-    nullable=False
-)
+        db.Enum(OrderStatus, name="order_status", native_enum=False), # Thêm native_enum=False ở đây
+        nullable=False,
+        default=OrderStatus.PENDING
+    )
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

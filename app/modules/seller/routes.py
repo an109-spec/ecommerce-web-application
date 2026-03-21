@@ -14,9 +14,10 @@ from flask import (
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import User, Product, Category, ProductVariant, FlashSale
+from app.models import User, Product, Category, ProductVariant, FlashSale, order
 from app.common.security.permission import seller_required
 from app.common.exceptions import ValidationError, AppException
+from app.modules.order.service import OrderService
 from app.modules.product.service import ProductService
 from . import seller_bp
 from .dto import CreateShopDTO, ShippingSetupDTO
@@ -712,7 +713,11 @@ def orders_page():
     if status:
         status = status.lower()
     orders = SellerCenterService.list_orders(shop.id, status)
-
+    from app.modules.order.service import OrderService
+    for order in orders:
+        customer = OrderService.get_customer_info(order)
+        order.display_name = customer['name']
+        order.display_phone = customer['phone']
     return render_template(
         "seller/order/order_list.html",
         orders=orders,

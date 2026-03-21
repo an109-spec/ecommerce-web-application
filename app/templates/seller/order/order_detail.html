@@ -1,47 +1,152 @@
 {% extends "seller/layout_seller.html" %}
 
 {% block seller_content %}
-
-<h2>Chi tiết đơn hàng</h2>
-
-<p>Mã đơn: #{{ order.order_code or order.id }}</p>
-<p>Khách: {{ customer.name }} - {{ customer.phone }}</p>
-<p>Địa chỉ: {{ customer.address }}</p>
-<p>Tổng tiền: {{ "{:,.0f}".format(order.total_price or 0) }}đ</p>
-<p>Trạng thái: {{ order.status.value }}</p>
-
-<h3>Sản phẩm</h3>
-
-<ul>
-
-{% for item in order.items %}
-<li>{{ item.product_name or ('Sản phẩm #' ~ item.product_id) }} x {{ item.quantity }}</li>
-{% endfor %}
-</ul>
-<h3>Timeline</h3>
-<ul class="timeline">
-{% for step in timeline %}
-<li class="{{ 'active' if step.active else '' }}">
-  {{ '●' if step.active else '○' }} {{ step.label }} {{ step.time }}
-
-</li>
-
-{% endfor %}
-
-</ul>
-
-{% set actions = {
-  "PENDING": [("CONFIRM","Xác nhận đơn"),("CANCEL","Hủy đơn")],
-  "CONFIRMED": [("START_PREPARING","Bắt đầu chuẩn bị"),("CANCEL","Hủy đơn")],
-  "PREPARING": [("READY_TO_SHIP","Chuẩn bị xong"),("CANCEL","Hủy đơn")],
-  "SHIPPING": [("MARK_DELIVERED","Đã giao")],
+{% set seller_actions = {
+  "PENDING": [("CONFIRM", "Xác nhận đơn", "btn-primary"), ("CANCEL", "Hủy đơn", "btn-danger")],
+  "CONFIRMED": [("START_PREPARING", "Bắt đầu chuẩn bị", "btn-primary"), ("CANCEL", "Hủy đơn", "btn-danger")],
+  "PREPARING": [("READY_TO_SHIP", "Chuẩn bị xong", "btn-primary"), ("CANCEL", "Hủy đơn", "btn-danger")],
+  "SHIPPING": [("MARK_DELIVERED", "Đã giao thành công", "btn-success")],
 } %}
-{% if actions.get(order.status.value) %}
-<form method="post" action="{{ url_for('order.seller_order_action', order_id=order.id) }}">
-  {% for action, label in actions.get(order.status.value) %}
-    <button type="submit" name="action" value="{{ action }}">{{ label }}</button>
-  {% endfor %}
-</form>
-{% endif %}
+{% set current_status = order.status.name if order.status.name else order.status.value|upper %}
+<div class="shopee-order-detail">
+    <div class="order-header-nav">
+        <a href="javascript:history.back()" class="back-link">❮ QUAY LẠI</a>
+        <div class="order-id-status">
+            <span>MÃ ĐƠN HÀNG: #{{ order.order_code or order.id }}</span>
+            <span class="status-divider">|</span>
+            <span class="status-text">{{ order.status.value|upper }}</span>
+        </div>
+    </div>
 
+    <!-- 1. Timeline Section -->
+    <div class="order-card timeline-section">
+        <ul class="shopee-timeline">
+            {% for step in timeline %}
+            <li class="timeline-item {{ 'active' if step.active else '' }}">
+                <div class="timeline-icon">{{ '●' if step.active else '○' }}</div>
+                <div class="timeline-content">
+                    <div class="timeline-label">{{ step.label }}</div>
+                    <div class="timeline-time">{{ step.time if step.time else '' }}</div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- 2. Address & Customer Section -->
+    <div class="order-card address-section">
+        <div class="section-title"><i class="fas fa-map-marker-alt"></i> Địa Chỉ Nhận Hàng</div>
+        <div class="address-content">
+            {% set addr_data = none %}
+            {# Thử ép kiểu hoặc parse nếu customer.address là chuỗi JSON #}
+            {% if customer.address is string and customer.address.startswith('[') %}
+                {# Lưu ý: Trong thực tế nên parse ở Python. Ở đây ta lấy địa chỉ đầu tiên thủ công nếu filter chưa có #}
+                <div class="addr-name">{{ customer.name }} | {{ customer.phone }}</div>
+                <div class="addr-detail">{{ customer.address }}</div>
+            {% else %}
+                <div class="addr-name">{{ customer.name }}</div>
+                <div class="addr-phone">{{ customer.phone }}</div>
+                <div class="addr-detail">{{ customer.address }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 3. Product List Section -->
+    <div class="order-card product-section">
+        <div class="section-title">Sản phẩm</div>
+        <table class="product-table">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th class="text-center">Đơn giá</th>
+                    <th class="text-center">Số lượng</th>
+                    <th class="text-right">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items %}
+                <tr>
+                    <td>
+                        <div class="product-info-cell">
+                            <img src="{{ item.product_thumbnail or '/static/images/default-p.png' }}" class="p-img">
+                            <div class="p-name">{{ item.product_name or ('Sản phẩm #' ~ item.product_id) }}</div>
+                        </div>
+                    </td>
+                    <td class="text-center">₫{{ "{:,.0f}".format(item.price or 0) }}</td>
+                    <td class="text-center">x{{ item.quantity }}</td>
+                    <td class="text-right">₫{{ "{:,.0f}".format((item.price or 0) * item.quantity) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </ul>
+        <div class="order-total-area">
+            <div class="total-row">
+                <span>Tổng tiền hàng:</span>
+                <span>₫{{ "{:,.0f}".format(order.subtotal or 0) }}</span>
+            </div>
+            <div class="total-row">
+                <span>Phí vận chuyển:</span>
+                <span>₫{{ "{:,.0f}".format(order.shipping_fee or 0) }}</span>
+            </div>
+            <div class="total-row final">
+                <span>Thành tiền:</span>
+                <span class="final-price">₫{{ "{:,.0f}".format(order.total_price or 0) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Action Buttons -->
+    {% set current_status = order.status.name if order.status.name else order.status.value|upper %}
+    <div class="order-footer-actions">
+        {% if seller_actions.get(current_status) %}
+            <form method="post" action="{{ url_for('order.seller_order_action', order_id=order.id) }}" class="flex-actions">
+                {% for action_code, label, btn_class in seller_actions.get(current_status) %}
+                    <button type="submit" name="action" value="{{ action_code }}" class="shopee-btn {{ btn_class }}">
+                        {{ label }}
+                    </button>
+                {% endfor %}
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .shopee-order-detail { font-size: 14px; color: #333; background: #f5f5f5; padding: 20px; }
+    .order-header-nav { display: flex; justify-content: space-between; background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 2px; }
+    .order-card { background: #fff; padding: 20px; margin-bottom: 15px; border-radius: 2px; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+    
+    /* Timeline */
+    .shopee-timeline { display: flex; justify-content: space-between; list-style: none; padding: 0; margin: 0; }
+    .timeline-item { flex: 1; text-align: center; position: relative; opacity: 0.5; }
+    .timeline-item.active { opacity: 1; color: #26aa99; }
+    .timeline-icon { font-size: 20px; margin-bottom: 5px; }
+    .timeline-label { font-weight: 500; }
+    .timeline-time { font-size: 12px; color: #999; }
+
+    /* Address */
+    .section-title { font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid #efefef; padding-bottom: 10px; color: #ee4d2d; }
+    .addr-name { font-weight: bold; margin-bottom: 5px; }
+
+    /* Product Table */
+    .product-table { width: 100%; border-collapse: collapse; }
+    .product-table th { padding: 10px; border-bottom: 1px solid #efefef; color: #888; font-weight: normal; }
+    .product-table td { padding: 15px 10px; border-bottom: 1px solid #efefef; }
+    .product-info-cell { display: flex; align-items: center; gap: 10px; }
+    .p-img { width: 60px; height: 60px; border: 1px solid #eee; object-fit: cover; }
+    
+    .order-total-area { text-align: right; padding: 20px 0; }
+    .total-row { display: flex; justify-content: flex-end; gap: 50px; margin-bottom: 10px; }
+    .total-row.final { border-top: 1px dashed #ddd; pt: 15px; }
+    .final-price { color: #ee4d2d; font-size: 24px; font-weight: bold; }
+
+    /* Buttons */
+    .order-footer-actions { background: #fff; padding: 20px; text-align: right; border-top: 1px solid #f1f1f1; }
+    .shopee-btn { padding: 10px 30px; min-width: 150px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 2px; margin-left: 10px; }
+    .btn-primary { background: #ee4d2d; color: #fff; border-color: #ee4d2d; }
+    .btn-primary:hover { background: #d73211; }
+    .btn-danger { color: #555; }
+    
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+</style>
 {% endblock %}

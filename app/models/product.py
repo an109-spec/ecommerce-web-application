@@ -69,6 +69,26 @@ class Product(BaseModel):
         lazy="selectin",
     )
     shop = db.relationship("app.models.shop.Shop", backref="products")
+    def to_dict(self):
+        display_price = float(self.variants[0].price) if self.variants else 0
+
+        is_freeship = False
+        if self.variants:
+            for v in self.variants:
+                fees = [v.shipping_fast_fee, v.shipping_same_day_fee, v.shipping_express_fee, 
+                        v.shipping_pickup_fee, v.shipping_bulky_fee]
+                if any(f == 0 or f is None for f in fees):
+                    is_freeship = True
+                    break
+
+        return {
+            "id": self.id,
+            "name": self.name,
+            "thumbnail": self.thumbnail,
+            "price": display_price,
+            "slug": self.slug,
+            "is_freeship": is_freeship  # Thêm dòng này
+        }
 
 class Category(BaseModel):
     __tablename__ = "categories"

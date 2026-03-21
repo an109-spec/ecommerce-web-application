@@ -244,20 +244,37 @@ root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
 });
 
     root.querySelectorAll('[data-apply-voucher-code]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const shopId = Number(button.dataset.applyVoucherCode);
-        const input = root.querySelector(`[data-voucher-code="${shopId}"]`);
-        try {
-          checkout = await fetchJson('/checkout/apply-voucher', {
-            method: 'POST',
-            body: JSON.stringify({ shop_id: shopId, voucher_code: input?.value || '' }),
-          });
-          render(checkout);
-        } catch (error) {
-          alert(error.message);
-        }
-      });
+        button.addEventListener('click', async () => {
+            const shopId = Number(button.dataset.applyVoucherCode);
+            const input = root.querySelector(`[data-voucher-code="${shopId}"]`);
+            const code = (input?.value || '').trim();
+
+            if (!shopId) {
+                alert("Không tìm thấy ID cửa hàng");
+                return;
+            }
+
+            // CHẶN GỬI NẾU TRỐNG:
+            if (!code) {
+                alert("Vui lòng nhập mã voucher trước khi áp dụng");
+                return;
+            }
+
+            try {
+                checkout = await fetchJson('/checkout/apply-voucher', {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        shop_id: shopId, 
+                        voucher_code: code 
+                    }),
+                });
+                render(checkout); // Cập nhật lại giao diện sau khi áp dụng thành công
+            } catch (error) {
+                alert(error.message); // Hiển thị lỗi từ Backend (ví dụ: Voucher hết hạn, không đủ điều kiện...)
+            }
+        });
     });
+
 
     root.querySelectorAll('[data-voucher-select]').forEach((select) => {
       select.addEventListener('change', async () => {

@@ -11,7 +11,7 @@ from app.models.review import Review
 from app.models.shop import Shop
 from app.models.order import Order, OrderItem
 from app.core.enums.order_status import OrderStatus
-from .search import full_text_query
+from .search import search_products
 from sqlalchemy import inspect, text
 from app.models.shop_follow import ShopFollow
 
@@ -52,23 +52,35 @@ class ProductService:
         if src.startswith("static/"):
             return f"/{src}"
         return f"/static/{src}"
-
     @staticmethod
-    def list_products(*, keyword=None, min_price=None, max_price=None, category=None, sort=None, page=1, per_page=10):
-        query = Product.query.filter(Product.status == ProductStatus.ACTIVE)
-        query = full_text_query(query, keyword)
-        query = filter_by_price(query, min_price, max_price)
-        query = filter_by_category(query, category)
+    def list_products(category_ids=None, keyword=None, min_price=None, max_price=None, sort=None, page=1, freeship=None, per_page=10):
+        from app.models.product import Product
+        from app.modules.product.search import search_products
+        from app.modules.product.filters import apply_filters, sort_products
+
+        query = Product.query
+        
+        if keyword:
+            query = search_products(query, keyword)
+        
+        query = apply_filters(
+            query, 
+            category_ids=category_ids, 
+            min_price=min_price, 
+            max_price=max_price,
+            freeship=freeship
+        )
+
         query = sort_products(query, sort)
 
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        
         return {
-            "items": [ProductResponseDTO.from_model(item).to_dict() for item in pagination.items],
+            "items": [item.to_dict() for item in pagination.items if hasattr(item, 'to_dict')],
             "total": pagination.total,
-            "page": page,
-            "per_page": per_page,
+            "page": pagination.page,
+            "pages": pagination.pages
         }
-
     @staticmethod
     def create_product(data: ProductCreateDTO):
         exists = Product.query.filter_by(slug=data.slug).first()

@@ -1,52 +1,206 @@
 {% extends "layouts/base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_detail.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/review.css') }}">
+{% endblock %}
+
 {% block content %}
-
-<h2>Chi tiết đơn hàng #{{ order.order_code }}</h2>
-
-<h3>Thông tin khách hàng</h3>
-<p>{{ customer.name }}</p>
-<p>{{ customer.phone }}</p>
-<p>{{ customer.address }}</p>
-
-<h3>Danh sách sản phẩm</h3>
-
-{% include "order/components/order_item_table.html" %}
-
-<h3>Chi tiết thanh toán</h3>
-<p>Tổng tiền hàng: {{ "{:,.0f}".format(order.subtotal or order.total_price or 0) }}đ</p>
-<p>Phí vận chuyển: {{ "{:,.0f}".format(order.shipping_fee or 0) }}đ</p>
-<p>Tổng thanh toán: {{ "{:,.0f}".format(order.total_price or 0) }}đ</p>
-
-
-<h3>Tiến trình đơn hàng</h3>
-{% include "order/components/order_timeline.html" %}
-
-{% if can_cancel %}
-<form method="post" action="{{ url_for('order.buyer_cancel_order', order_id=order.id) }}">
-    <button type="submit">Hủy đơn</button>
-</form>
-{% elif order.status.value not in ["CANCELLED", "DELIVERED"] %}
-<p><strong>Không thể hủy đơn</strong></p>
-{% endif %}
-
-<h3>Đánh giá sản phẩm</h3>
-{% if show_review_form %}
-<form method="post" action="{{ url_for('order.buyer_submit_review', order_id=order.id) }}">
-    {% for item in order.items %}
-    <div style="margin-bottom: 16px;">
-        <p>{{ item.product_name }}</p>
-        <label>Số sao</label>
-        <input name="rating_{{ item.id }}" type="number" min="1" max="5" required>
-        <label>Nhận xét</label>
-        <textarea name="comment_{{ item.id }}"></textarea>
+<div class="order-detail-container">
+    <!-- 1. Thanh trạng thái & ID -->
+    <div class="detail-header-bar">
+        <a href="{{ url_for('order.user_order_list') }}" class="btn-back"> < Quay lại </a>
+        <div class="header-info">
+            <span class="order-id">MÃ ĐƠN HÀNG: {{ order.order_code }}</span>
+            <span class="divider">|</span>
+            <span class="order-status">
+                {% include "order/components/order_status_badge.html" %}
+            </span>
+        </div>
     </div>
-    {% endfor %}
-    <button type="submit">Gửi đánh giá</button>
-</form>
-{% elif order.status.value != "DELIVERED" %}
-<p>Chưa thể đánh giá</p>
-{% else %}
-<p>Bạn đã đánh giá đơn hàng này.</p>
-{% endif %}
 
+    <!-- 2. Tiến trình đơn hàng (Timeline) -->
+    <div class="detail-card timeline-card">
+        <div class="section-title">Trạng thái đơn hàng</div>
+        {% include "order/components/order_timeline.html" %}
+    </div>
+
+    <!-- 3. Thông tin nhận hàng (Đã sửa lỗi hiển thị) -->
+    <div class="detail-card address-card">
+        <div class="section-title">Địa chỉ nhận hàng</div>
+        <div class="address-content">
+            <div class="address-icon">📍</div>
+            <div class="address-info">
+                {% set addr = None %}
+                
+                {# Lấy địa chỉ khớp với đơn hàng từ danh sách đã xử lý ở Backend #}
+                {% for a in customer_address_list %}
+                    {% if a.id == order.address_id or a.get('id') == order.address_id %}
+                        {% set addr = a %}
+                    {% endif %}
+                {% endfor %}
+
+                {# Nếu không tìm thấy ID cụ thể, lấy cái đầu tiên #}
+                {% if not addr and customer_address_list %}
+                    {% set addr = customer_address_list[0] %}
+                {% endif %}
+
+                {% if addr %}
+                    <p class="customer-name">{{ addr.full_name if addr.full_name else addr.get('full_name') }}</p>
+                    <p class="customer-phone">{{ addr.phone if addr.phone else addr.get('phone') }}</p>
+                    <p class="customer-text">
+                        {{ addr.address_line if addr.address_line else addr.get('address_line') }}<br>
+                        {{ addr.ward if addr.ward else addr.get('ward') }}, 
+                        {{ addr.district if addr.district else addr.get('district') }}, 
+                        {{ addr.city if addr.city else addr.get('city') }}
+                    </p>
+                {% else %}
+                    {# Trường hợp xấu nhất không có địa chỉ trong list #}
+                    <p class="customer-name">{{ customer.name if customer is not mapping else customer.get('name') }}</p>
+                    <p class="customer-text">Chưa cập nhật địa chỉ chi tiết.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tiếp tục các phần 4, 5, 6 cũ của bạn ở dưới... -->
+
+    <!-- 4. Danh sách sản phẩm -->
+    <div class="detail-card product-card">
+        <div class="shop-header">
+            <span class="shop-badge">Yêu thích</span>
+            <span class="shop-name">OneShop Store</span>
+        </div>
+        
+        <div class="product-list">
+            {% for item in order.items %}
+            <div class="product-item">
+                <div class="product-img">
+                    <img src="{{ item.product_thumbnail if item.product_thumbnail else '/static/images/no-image.png' }}" alt="">
+                </div>
+                <div class="product-info">
+                    <h4 class="name">{{ item.product_name }}</h4>
+                    <p class="variant">Phân loại: Mặc định</p>
+                    <p class="quantity">x{{ item.quantity }}</p>
+                </div>
+                <div class="product-price">
+                    ₫{{ "{:,.0f}".format(item.price or 0) }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 5. Chi tiết thanh toán -->
+    <div class="detail-card payment-card">
+        <div class="payment-row">
+            <span>Tổng tiền hàng</span>
+            <span>₫{{ "{:,.0f}".format(order.subtotal or order.total_price or 0) }}</span>
+        </div>
+        <div class="payment-row">
+            <span>Phí vận chuyển</span>
+            <span>₫{{ "{:,.0f}".format(order.shipping_fee or 0) }}</span>
+        </div>
+        <div class="payment-row total">
+            <span class="total-label">Thành tiền</span>
+            <span class="total-value">₫{{ "{:,.0f}".format(order.total_price or 0) }}</span>
+        </div>
+    </div>
+
+    <!-- 6. Hành động (Hủy đơn / Đánh giá) -->
+    <div class="detail-card action-card">
+        {% if can_cancel %}
+        <form method="post" action="{{ url_for('order.buyer_cancel_order', order_id=order.id) }}">
+            <button type="submit" class="btn btn-cancel-order">Hủy đơn hàng</button>
+        </form>
+        {% elif order.status.value not in ["CANCELLED", "DELIVERED"] %}
+        <p class="note">Bạn không thể hủy đơn hàng vào lúc này.</p>
+        {% endif %}
+
+        {% if show_review_form %}
+        <div class="review-section">
+            <h3>Đánh giá sản phẩm</h3>
+            <form method="post" action="{{ url_for('order.buyer_submit_review', order_id=order.id) }}">
+                {% for item in order.items %}
+                <div class="review-item">
+                    <p><strong>{{ item.product_name }}</strong></p>
+                    <div class="rating-input">
+                        <span>Chất lượng sản phẩm: </span>
+                        <div class="star-rating" data-item-id="{{ item.id }}">
+                            <input type="hidden" name="rating_{{ item.id }}" id="input-rating-{{ item.id }}" value="5">
+                            <div class="stars">
+                                <i class="fas fa-star active" data-value="1"></i>
+                                <i class="fas fa-star active" data-value="2"></i>
+                                <i class="fas fa-star active" data-value="3"></i>
+                                <i class="fas fa-star active" data-value="4"></i>
+                                <i class="fas fa-star active" data-value="5"></i>
+                            </div>
+                            <span class="rating-text">Tuyệt vời</span>
+                        </div>
+                    </div>
+                    <textarea name="comment_{{ item.id }}" placeholder="Hãy chia sẻ cảm nhận của bạn về sản phẩm..."></textarea>
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary">Gửi đánh giá</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ratingTexts = {
+        1: 'Rất tệ',
+        2: 'Tệ',
+        3: 'Bình thường',
+        4: 'Hài lòng',
+        5: 'Tuyệt vời'
+    };
+
+    // Tìm tất cả các cụm sao trên trang
+    const starContainers = document.querySelectorAll('.star-rating');
+
+    starContainers.forEach(container => {
+        const stars = container.querySelectorAll('.fa-star');
+        const hiddenInput = container.querySelector('input[type="hidden"]');
+        const textDisplay = container.querySelector('.rating-text');
+
+        stars.forEach(star => {
+            // Hiệu ứng khi di chuột qua (Hover)
+            star.addEventListener('mouseover', function() {
+                const value = this.dataset.value;
+                updateStars(stars, value);
+            });
+
+            // Trả lại trạng thái cũ khi bỏ chuột ra nếu chưa click
+            star.addEventListener('mouseout', function() {
+                updateStars(stars, hiddenInput.value);
+            });
+
+            // Xử lý khi Click chọn sao
+            star.addEventListener('click', function() {
+                const value = this.dataset.value;
+                hiddenInput.value = value;
+                textDisplay.textContent = ratingTexts[value];
+                updateStars(stars, value);
+            });
+        });
+    });
+
+    // Hàm cập nhật màu sắc sao
+    function updateStars(stars, value) {
+        stars.forEach(s => {
+            if (s.dataset.value <= value) {
+                s.classList.add('active');
+                s.classList.replace('far', 'fas'); // Đổi từ sao rỗng sang sao đặc
+            } else {
+                s.classList.remove('active');
+                s.classList.replace('fas', 'far'); // Đổi từ sao đặc sang sao rỗng
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

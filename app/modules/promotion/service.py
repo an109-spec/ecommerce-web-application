@@ -237,6 +237,14 @@ class VoucherService:
 
         return voucher
     
+    @staticmethod
+    def list_public_active_vouchers():
+        """Lấy danh sách tất cả voucher đang hoạt động cho người mua hiển thị ở Kho Voucher"""
+        now = datetime.now(timezone.utc)
+        return Voucher.query.filter(
+            Voucher.is_active == True,
+            Voucher.end_time >= now
+        ).order_by(Voucher.end_time.asc()).all()
     
 class FlashSaleService:
     @staticmethod

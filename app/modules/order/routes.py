@@ -2,13 +2,14 @@
 
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash
 from app.common.exceptions import AppException
+from app.extensions import db
 from app.modules.product.dto import ReviewCreateDTO
 from app.modules.product.service import ProductService
 from app.modules.seller.repository import SellerRepository
 from .service import OrderService
 from app.core.enums.order_status import OrderStatus
 from .workflow import apply_transition
-
+import json
 order_bp = Blueprint("order", __name__, url_prefix="/order")
 
 
@@ -51,12 +52,21 @@ def user_order_detail(order_id):
         order.status == OrderStatus.DELIVERED
         and not OrderService.has_review_by_user(order, user_id)
     )
+    raw_address = customer.get('address') if isinstance(customer, dict) else getattr(customer, 'address', None)
+    if isinstance(raw_address, str):
+        try:
+            customer_address_list = json.loads(raw_address)
+        except:
+            customer_address_list = []
+    else:
+        customer_address_list = raw_address if raw_address else []
 
     return render_template(
         "order/user/order_detail.html",
         order=order,
         timeline=timeline,
         customer=customer,
+        customer_address_list=customer_address_list, # Biến này đã là list sạch sẽ
         can_cancel=can_cancel,
         show_review_form=show_review_form,
     )
@@ -69,8 +79,9 @@ def buyer_cancel_order(order_id):
     try:
         OrderService.cancel_order(order_id, user_id, by="BUYER")
         flash("Hủy đơn thành công", "success")
-    except AppException as exc:
-        flash(str(exc), "error")
+    except Exception as exc: # Đổi từ AppException thành Exception để bắt tất cả lỗi
+            db.session.rollback() # Đảm bảo rollback nếu lỗi
+            flash(f"Lỗi: {str(exc)}", "error") # Hiện lỗi cụ thể lên màn hình
     return redirect(url_for("order.user_order_detail", order_id=order_id))
 
 
@@ -112,6 +123,18 @@ def seller_order_detail(order_id):
     order = OrderService.get_order_detail_for_seller(order_id, shop.id)
     timeline = OrderService.build_timeline(order)
     customer = OrderService.get_customer_info(order)
+    if isinstance(customer.get('address'), str):
+        try:
+            addr_list = json.loads(customer['address'])
+            if isinstance(addr_list, list) and len(addr_list) > 0:
+                # Tìm địa chỉ có is_default=True, nếu ko có lấy cái đầu tiên
+                default_addr = next((a for a in addr_list if a.get('is_default')), addr_list[0])
+                # Ghi đè lại chuỗi address bằng chuỗi đã định dạng đẹp
+                customer['address'] = f"{default_addr['address_line']}, {default_addr['ward']}, {default_addr['district']}, {default_addr['city']}"
+                customer['phone'] = default_addr.get('phone', customer.get('phone'))
+                customer['name'] = default_addr.get('full_name', customer.get('name'))
+        except:
+            pass # Nếu không phải JSON thì để nguyên
     return render_template("seller/order/order_detail.html", order=order, timeline=timeline, customer=customer)
 
 

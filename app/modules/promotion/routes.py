@@ -1,4 +1,4 @@
-from flask import jsonify, request, redirect
+from flask import jsonify, request, redirect, render_template
 from datetime import datetime, timezone
 from . import promotion_bp
 from .service import FlashSaleService, VoucherService, PromotionService
@@ -146,3 +146,9 @@ def update_flash_sale(flash_id):
             "success": False,
             "error": str(e)
         }), 500
+
+@promotion_bp.route("/vouchers", methods=["GET"])
+def public_vouchers():
+    from app.models.voucher import Voucher
+    vouchers = VoucherService.list_public_active_vouchers()
+    return render_template("promotion/voucher_list.html", vouchers=vouchers)
