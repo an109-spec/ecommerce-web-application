@@ -7,7 +7,8 @@ class Cart(BaseModel):
 
     user_id = db.Column(db.BigInteger, db.ForeignKey("users.id"), unique=True)
     updated_at=db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-
+    variant_id = db.Column(db.BigInteger, db.ForeignKey("product_variants.id"), nullable=True) 
+    quantity = db.Column(db.Integer, nullable=False)
 
 class CartItem(BaseModel):
     __tablename__ = "cart_items"

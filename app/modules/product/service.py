@@ -267,6 +267,7 @@ class ProductService:
             "categories": category_names,
             "shop": {
                 "id": shop.id if shop else None,
+                "owner_id": shop.owner_id if shop else None,
                 "name": shop.name if shop else "OneShop",
                 "logo": ProductService._normalize_asset_url(shop.logo if shop else None),
                 "rating": float(shop.rating) if shop and shop.rating is not None else 0.0,

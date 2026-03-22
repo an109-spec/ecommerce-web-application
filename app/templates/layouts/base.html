@@ -43,8 +43,12 @@
             </div>
           </details>
           <span>|</span>
+          <a href="{{ url_for('chat.chat_page') }}">💬 Chat{% if unread_chat_messages %} ({{ unread_chat_messages }}){% endif %}</a>
+          <span>|</span>
         {% else %}
           <a href="#">🔔 Thông Báo</a>
+          <span>|</span>
+          <a href="{{ url_for('auth.login', next=url_for('chat.chat_page')) }}">💬 Chat</a>
           <span>|</span>
         {% endif %}
 

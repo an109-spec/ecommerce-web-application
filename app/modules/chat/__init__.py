@@ -4,5 +4,5 @@ chat_bp = Blueprint("chat",__name__, url_prefix="/chat")
 
 from . import routes
 
-
+from . import socket
 

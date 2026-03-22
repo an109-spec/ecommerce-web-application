@@ -1,11 +1,20 @@
 <article class="cart-item-card" data-cart-item data-variant-id="{{ item.variant_id }}">
   <div class="cart-item-card__media">
-    <img src="{{ item.product_image }}" alt="{{ item.product_name }}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
+    <!-- Thêm link vào ảnh -->
+    <a href="/shop/{{ item.product_id }}">
+      <img src="{{ item.product_image }}" alt="{{ item.product_name }}" onerror="this.onerror=null;this.src='/static/images/no-image.png';">
+    </a>
   </div>
 
   <div class="cart-item-card__content">
     <div class="cart-item-card__main">
-      <h3>{{ item.product_name }}</h3>
+      <!-- Thêm link vào tên sản phẩm và thêm class để giữ style -->
+      <h3>
+        <a href="/shop/{{ item.product_id }}" class="cart-item-card__link">
+          {{ item.product_name }}
+        </a>
+      </h3>
+      
       <p class="cart-item-card__variant">Phân loại: Size {{ item.size or '-' }} · Color {{ item.color or '-' }}</p>
 
       <div class="cart-item-card__price-grid">
@@ -26,3 +35,19 @@
     </div>
   </div>
 </article>
+
+<style>
+/* CSS bổ sung để link không bị đổi màu xanh gạch chân xấu xí */
+.cart-item-card__link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s;
+}
+.cart-item-card__link:hover {
+    color: #ee4d2d; /* Màu cam Shopee hoặc màu chủ đạo của bạn */
+}
+.cart-item-card__media a {
+    display: block;
+    overflow: hidden;
+}
+</style>

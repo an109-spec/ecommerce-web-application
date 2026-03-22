@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
 
+PERMANENT_SESSION_LIFETIME = timedelta(days=30)
 
 class BaseConfig:
     ENV = os.getenv("FLASK_ENV", "development")
@@ -10,7 +11,7 @@ class BaseConfig:
     # ======================
     # DATABASE
     # ======================
-
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     DB_USER = os.getenv("APP_DB_USER")
     DB_PASSWORD = os.getenv("APP_DB_PASSWORD")
     DB_NAME = os.getenv("APP_DB_NAME")

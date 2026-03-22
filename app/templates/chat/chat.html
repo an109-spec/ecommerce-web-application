@@ -1,32 +1,72 @@
-<div class="chat-container">
+{% extends "layouts/base.html" %}
+{% block title %}Chat{% endblock %}
 
-    <div class="chat-header">
-        Chat
-    </div>
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+{% endblock %}
 
-    <div id="chat-box" class="chat-box"></div>
+{% block content %}
+<section class="chat-page">
+  <div class="chat-layout">
+    <aside class="chat-sidebar">
+      <h3>Conversations</h3>
+      <div class="chat-room-list">
+        {% for item in rooms %}
+          {% set room = item.room %}
+          {% set partner = item.partner %}
+          <a class="chat-room-item {% if active and active.room.id == room.id %}is-active{% endif %}" href="{{ url_for('chat.chat_page', room=room.id) }}" data-room-link data-room-id="{{ room.id }}">
+            <div class="chat-room-title-row">
+              <strong>{{ partner.username if partner else ('User #' ~ item.partner_id) }}</strong>
+              {% if item.unread_count %}<span class="chat-room-badge">{{ item.unread_count }}</span>{% endif %}
+            </div>
+            <div class="chat-room-preview">{{ item.last_message.content if item.last_message and item.last_message.content else 'Bắt đầu cuộc trò chuyện' }}</div>
+          </a>
+        {% else %}
+          <p class="chat-empty">Bạn chưa có cuộc trò chuyện nào.</p>
+        {% endfor %}
+      </div>
+    </aside>
 
-    <div class="typing" id="typing"></div>
+    <section class="chat-main">
+      {% if active %}
+        <header class="chat-main-header">
+          <h3>
+            {{ active.partner.username if active.partner else ('User #' ~ active.partner_id) }}
+            <span class="online-dot" data-user-id="{{ active.partner_id }}"></span>
+          </h3>
+        </header>
 
-    <div class="chat-input">
+        <div id="chat-box" class="chat-box" data-room-id="{{ active.room.id }}">
+          {% for message in messages %}
+            <div class="message {% if message.sender_id == current_user.id %}self{% endif %}">
+              <div class="bubble">{{ message.content or '[Hình ảnh]' }}</div>
+            </div>
+          {% endfor %}
+        </div>
 
-        <input id="message-input" placeholder="Nhập tin nhắn">
+        <form id="chat-send-form" class="chat-input" data-room-id="{{ active.room.id }}">
+          <input id="message-input" name="content" placeholder="Nhập tin nhắn" autocomplete="off">
+          <button type="submit" id="send-btn">Gửi</button>
+        </form>
+      {% else %}
+        <div class="chat-empty-state">Chọn shop để bắt đầu chat.</div>
+      {% endif %}
+    </section>
+  </div>
+</section>
+{% endblock %}
 
-        <button id="send-btn">
-            Send
-        </button>
-
-    </div>
-
-</div>
+{% block scripts %}
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
 <script>
 window.CHAT_CONFIG = {
-    room_id: {{ room_id | tojson }},
-    current_user_id: {{ current_user.id | tojson }}
+  roomId: {{ active.room.id if active else 'null' }},
+  currentUserId: {{ current_user.id | tojson }},
+  seenUrlTemplate: {{ url_for('chat.seen_messages', room_id=0) | tojson }}
 }
 </script>
 
 <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

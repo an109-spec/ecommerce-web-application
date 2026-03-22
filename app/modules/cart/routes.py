@@ -1,4 +1,5 @@
 from flask import jsonify, redirect, render_template, request, url_for
+from flask_jwt_extended import jwt_required
 from . import cart_bp
 from .service import CartService
 
@@ -13,6 +14,7 @@ def _wants_json_response() -> bool:
 
 
 @cart_bp.route("/", methods=["GET"])
+@jwt_required(optional=True)
 def view_cart():
     payload = CartService.build_cart_payload()
     if _wants_json_response():
@@ -34,6 +36,7 @@ def get_item(variant_id: int):
 
 
 @cart_bp.route("/add", methods=["POST"])
+@jwt_required(optional=True)
 def add():
     payload = request.get_json(silent=True) or request.form
     try:
@@ -53,6 +56,7 @@ def add():
         raise
 
 @cart_bp.route("/item/<int:variant_id>", methods=["PUT"])
+@jwt_required(optional=True)
 def update_item(variant_id: int):
     payload = request.get_json(silent=True) or {}
     try:
@@ -69,6 +73,7 @@ def update_item(variant_id: int):
 
 
 @cart_bp.route("/item/<int:variant_id>", methods=["DELETE"])
+@jwt_required(optional=True)
 def delete_item(variant_id: int):
     try:
         return jsonify(CartService.remove_item(variant_id)), 200
@@ -113,6 +118,7 @@ def apply_voucher():
         return jsonify({"error": "Lỗi server"}), 500
 
 @cart_bp.route("/clear", methods=["POST"])
+@jwt_required(optional=True)
 def clear():
     CartService.clear_cart()
     if _wants_json_response():

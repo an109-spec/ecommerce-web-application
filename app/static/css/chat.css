@@ -1,58 +1,226 @@
-.chat-container{
-width:420px;
-margin:30px auto;
-border:1px solid #ddd;
-display:flex;
-flex-direction:column;
-height:550px;
+.chat-page {
+  margin: 16px 0;
 }
 
-.chat-header{
-padding:12px;
-background:#222;
-color:white;
+.chat-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  min-height: 560px;
+  border: 1px solid #eee;
+  background: #fff;
 }
 
-.chat-box{
-flex:1;
-overflow-y:auto;
-padding:10px;
-background:#f3f3f3;
+.chat-sidebar {
+  border-right: 1px solid #eee;
+  background: #fafafa;
 }
 
-.message{
-margin-bottom:10px;
+.chat-sidebar h3 {
+  margin: 0;
+  padding: 14px;
+  border-bottom: 1px solid #eee;
+  font-size: 16px;
 }
 
-.message.self{
-text-align:right;
+.chat-room-list {
+  display: flex;
+  flex-direction: column;
 }
 
-.bubble{
-display:inline-block;
-padding:8px 12px;
-background:white;
-border-radius:10px;
+.chat-room-item {
+  display: block;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #222;
+  text-decoration: none;
 }
 
-.message.self .bubble{
-background:#dcf8c6;
+.chat-room-item.is-active {
+  background: #fff3f1;
 }
 
-.chat-input{
-display:flex;
-border-top:1px solid #ddd;
+.chat-room-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.chat-input input{
-flex:1;
-padding:10px;
-border:none;
+.chat-room-badge {
+  background: #ee4d2d;
+  color: #fff;
+  border-radius: 999px;
+  min-width: 20px;
+  text-align: center;
+  font-size: 12px;
+  padding: 2px 6px;
 }
 
-.chat-input button{
-width:80px;
-background:#4CAF50;
-color:white;
-border:none;
+.chat-room-preview {
+  color: #777;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.chat-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-main-header {
+  border-bottom: 1px solid #eee;
+  padding: 14px;
+}
+
+.chat-main-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.online-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #c7c7c7;
+  display: inline-block;
+}
+
+.online-dot.is-online {
+  background: #2dc653;
+}
+
+.chat-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: #fff;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  align-items: flex-start; /* Tin nhắn người khác nằm bên trái */
+}
+.message.self {
+  align-items: flex-end; /* Tin nhắn của mình nằm bên phải */
+}
+
+.bubble {
+  padding: 10px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  word-wrap: break-word;
+}
+.bubble-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+}
+.message:not(.self) .bubble {
+  background: #f0f0f0;
+  color: #333;
+  /* Bo góc Messenger: Vuông góc dưới cùng bên trái */
+  border-bottom-left-radius: 4px; 
+}
+.message.self .bubble {
+  background: linear-gradient(135deg, #ff7b54, #ee4d2d);
+  color: #fff;
+  /* Bo góc Messenger: Vuông góc dưới cùng bên phải */
+  border-bottom-right-radius: 4px;
+}
+.time {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+.message.self .time {
+  text-align: right; /* Thời gian của mình thì căn phải */
+}
+.chat-input {
+  display: flex;
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+  background: #fff;
+  gap: 10px;
+  align-items: center;
+}
+
+.chat-input input {
+  flex: 1;
+  border: 1px solid #ddd;
+  padding: 12px 18px;
+  border-radius: 24px; /* Khung nhập bo tròn */
+  outline: none;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+.chat-input input:focus {
+  border-color: #ee4d2d;
+  box-shadow: 0 0 0 3px rgba(238, 77, 45, 0.1);
+}
+.chat-input button {
+  border: none;
+  background: #ee4d2d;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+}
+
+.chat-empty,
+.chat-empty-state {
+  color: #777;
+  padding: 14px;
+}
+.chat-input button:active {
+  transform: scale(0.95); /* Hiệu ứng lún nút khi click */
+}
+/* Cụm chứa thời gian và trạng thái */
+.msg-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.message.self .msg-status {
+  justify-content: flex-end; /* Đẩy sang phải nếu là mình gửi */
+}
+
+.time {
+  font-size: 10px;
+  color: #bbb;
+}
+
+.status-text {
+  font-size: 10px;
+  font-style: normal;
+  color: #bbb;
+  transition: all 0.3s ease;
+}
+
+/* Khi đã xem thì đổi màu xanh cho nó "uy tín" */
+.status-icon.is-seen .status-text {
+  color: #2da44e; 
+  font-weight: bold;
+}
+
+/* Hiệu ứng bong bóng cho hiện đại */
+.message.self .bubble {
+  border-bottom-right-radius: 4px !important;
+}
+.message:not(.self) .bubble {
+  border-bottom-left-radius: 4px !important;
 }

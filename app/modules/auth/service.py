@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.common.exceptions import ConflictError, UnauthorizedError, ValidationError
 from app.extensions import db
-from app.models import User, UserProfile
+from app.models import User, UserProfile, user
 from app.models.otp import OTPCode
 
 from app.common.security.otp import get_otp_expired_at
@@ -172,6 +172,9 @@ class AuthService:
         user.locked_until = None
         db.session.commit()
 
+        from app.modules.cart.service import CartService 
+        CartService.load_cart_from_db(user.id)
+        
         return user
 
     # ======================================================

@@ -90,12 +90,10 @@
 
 
     const urlParams = new URLSearchParams(window.location.search);
-    const hasSearch = urlParams.has('q') || urlParams.get('keyword');
+    const checkSearch = urlParams.has('q') || urlParams.has('keyword') || urlParams.has('category_id');
 
     loadSuggestions();
-
-        // Nếu có từ khóa search thì mới load kết quả tìm kiếm
-        if (hasSearch) {
-            loadResults();
-        }
+    if (checkSearch) {
+        loadResults();
+    }
 })();

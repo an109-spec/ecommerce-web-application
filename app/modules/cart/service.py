@@ -3,8 +3,11 @@ from __future__ import annotations
 from collections import OrderedDict
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, Dict
 from flask import session
+from flask_jwt_extended import get_jwt_identity
+from app.extensions import db
+from app.models.cart import Cart, CartItem
 from app.models.flash_sale import FlashSale
 from app.models.product import Product, ProductVariant
 from app.models.promotion import Promotion
@@ -15,15 +18,45 @@ class CartService:
     SESSION_KEY = "cart"
 
     @staticmethod
-    def get_cart() -> dict[str, Any]:
-        cart = session.get(CartService.SESSION_KEY)
+    def get_cart():
+        """
+        Lấy giỏ hàng định danh theo User. 
+        Nếu đã login: Ưu tiên DB. Nếu chưa: Dùng Session.
+        """
+        user_id = None
+        try:
+            user_id = get_jwt_identity()
+        except:
+            pass
 
+        # TRƯỜNG HỢP 1: ĐÃ ĐĂNG NHẬP (Lấy hoàn toàn từ DB để đảm bảo riêng tư)
+        if user_id:
+            cart_db = Cart.query.filter_by(user_id=user_id).first()
+            if not cart_db:
+                # Tạo giỏ hàng trống trong DB nếu user này chưa từng có giỏ
+                cart_db = Cart(user_id=user_id)
+                db.session.add(cart_db)
+                db.session.commit()
+
+            items = {}
+            for item in cart_db.items:
+                # Key định danh theo variant_id để không trùng lặp
+                items[str(item.variant_id)] = {
+                    "product_id": item.product_id,
+                    "variant_id": item.variant_id,
+                    "quantity": item.quantity
+                }
+            
+            # Lưu vào session tạm thời để các hàm tính toán phí/voucher truy cập nhanh
+            cart_data = {"items": items, "applied_vouchers": session.get("vouchers", {})}
+            session[CartService.SESSION_KEY] = cart_data
+            return cart_data
+
+        # TRƯỜNG HỢP 2: CHƯA ĐĂNG NHẬP (Guest - Dùng Session riêng của trình duyệt)
+        cart = session.get(CartService.SESSION_KEY)
         if not cart:
             cart = {"items": {}, "applied_vouchers": {}}
             session[CartService.SESSION_KEY] = cart
-        cart.setdefault("items", {})
-        cart.setdefault("applied_vouchers", {})
-
         return cart
 
     # =========================
@@ -31,37 +64,74 @@ class CartService:
     # =========================
 
     @staticmethod
-    def add_to_cart(
-        product_id: int,
-        quantity: int,
-        *,
-        variant_id: int | None = None,
-        size: str | None = None,
-        color: str | None = None,
-    ) -> dict[str, Any]:
+    def add_to_cart(product_id: int, quantity: int, *, variant_id=None, size=None, color=None) -> dict:
         if quantity <= 0:
             raise ValueError("Số lượng phải lớn hơn 0")
 
+        # 1. Tìm Variant (Dùng logic Resolve cũ của bạn)
         variant = CartService._resolve_variant(product_id, variant_id=variant_id, size=size, color=color)
         if not variant:
             raise ValueError("Không tìm thấy phân loại sản phẩm phù hợp")
 
+        # 2. Lấy giỏ hàng hiện tại (Hàm get_cart này đã xử lý phân biệt User/Guest như tôi đã viết ở trên)
         cart = CartService.get_cart()
-        items = cart["items"]
-        variant_key = str(variant.id)
-        current_qty = int(items.get(variant_key, {}).get("quantity", 0))
-        new_qty = current_qty + int(quantity)
+        key = str(variant.id)
+        
+        # 3. Tính toán số lượng mới
+        current_qty = cart["items"].get(key, {}).get("quantity", 0)
+        new_qty = current_qty + quantity
 
+        # 4. Kiểm tra tồn kho
         if new_qty > int(variant.stock or 0):
-            raise ValueError("Số lượng vượt quá tồn kho")
+            raise ValueError(f"Số lượng vượt quá tồn kho (Còn lại: {variant.stock})")
 
-        items[variant_key] = {
+        # 5. Cập nhật vào cấu trúc Dict của Cart
+        cart["items"][key] = {
             "product_id": variant.product_id,
             "variant_id": variant.id,
             "quantity": new_qty,
+            "name": variant.product.name, # Thêm để hiển thị nhanh nếu cần
+            "price": float(variant.price)
         }
-        CartService._mark_session_dirty()
+
+        # 6. LƯU TRỮ (Đây là chỗ then chốt)
+        # Hàm này sẽ tự biết: Nếu có Token thì lưu vào DB, không thì lưu vào Session
+        CartService._sync_to_storage(cart)
+
         return CartService.get_mini_cart()
+
+    @staticmethod
+    def _sync_to_storage(cart_data):
+        """Hàm bổ trợ: Lưu dữ liệu vào đúng chỗ (DB nếu đã login, Session nếu chưa)"""
+        user_id = None
+        try:
+            user_id = get_jwt_identity()
+        except:
+            pass
+
+        if user_id:
+            # Chỉ đồng bộ vào DB của User hiện tại
+            cart_db = Cart.query.filter_by(user_id=user_id).first()
+            if not cart_db:
+                cart_db = Cart(user_id=user_id)
+                db.session.add(cart_db)
+                db.session.flush()
+
+            # Refresh items: Xóa cũ ghi mới
+            CartItem.query.filter_by(cart_id=cart_db.id).delete()
+            for key, item in cart_data["items"].items():
+                new_item = CartItem(
+                    cart_id=cart_db.id,
+                    product_id=item["product_id"],
+                    variant_id=item["variant_id"],
+                    quantity=item["quantity"]
+                )
+                db.session.add(new_item)
+            db.session.commit()
+        
+        # Luôn cập nhật session để UI hiển thị ngay lập tức
+        session[CartService.SESSION_KEY] = cart_data
+        session.modified = True
 
     @staticmethod
     def remove_item(variant_id: int) -> dict[str, Any]:
@@ -520,4 +590,102 @@ class CartService:
 
     @staticmethod
     def _mark_session_dirty() -> None:
+        session.permanent = True
         session.modified = True
+        try:
+            user_id = get_jwt_identity() 
+            if user_id:
+                CartService._sync_cart_to_db(user_id)
+        except Exception as e:
+                pass
+    @staticmethod
+    def _sync_cart_to_db(user_id: int) -> None:
+        cart_data = session.get(CartService.SESSION_KEY)
+        if not cart_data: return
+
+        cart_db = Cart.query.filter_by(user_id=user_id).first()
+        if not cart_db:
+            cart_db = Cart(user_id=user_id)
+            db.session.add(cart_db)
+            db.session.flush()
+
+        # Xóa sạch item cũ để sync mới hoàn toàn
+        CartItem.query.filter_by(cart_id=cart_db.id).delete()
+
+        for variant_key, item_data in cart_data["items"].items():
+            new_item = CartItem(
+                cart_id=cart_db.id,
+                product_id=item_data["product_id"],
+                variant_id=item_data["variant_id"],
+                quantity=item_data["quantity"]
+            )
+            db.session.add(new_item)
+        
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Sync Cart Error: {e}")
+
+    @staticmethod
+    def load_cart_from_db(user_id: int) -> None:
+        from app.models.cart import Cart, CartItem
+        from flask import session
+
+        cart_db = Cart.query.filter_by(user_id=user_id).first()
+        if not cart_db:
+            return 
+
+        cart_data = {"items": {}, "applied_vouchers": {}}
+        
+        items = CartItem.query.filter_by(cart_id=cart_db.id).all()
+        for item in items:
+            variant_key = str(item.variant_id) if item.variant_id else str(item.product_id)
+            
+            cart_data["items"][variant_key] = {
+                "product_id": item.product_id,
+                "variant_id": item.variant_id,
+                "quantity": item.quantity
+            }
+        
+        session.permanent = True
+        session[CartService.SESSION_KEY] = cart_data
+        session.modified = True
+
+    @staticmethod
+    def merge_carts_on_login(user_id):
+        """
+        HÀM QUAN TRỌNG: Gọi hàm này ngay khi User vừa ấn nút Login thành công.
+        Nó sẽ lấy đồ từ session (khi họ chưa login) gộp vào DB (giỏ hàng cũ của họ).
+        """
+        # 1. Lấy giỏ hàng từ Session (đồ khách chọn trước khi login)
+        guest_cart = session.get(CartService.SESSION_KEY, {"items": {}})
+        
+        # 2. Lấy hoặc tạo giỏ hàng trong DB của User
+        user_cart = Cart.query.filter_by(user_id=user_id).first()
+        if not user_cart:
+            user_cart = Cart(user_id=user_id)
+            db.session.add(user_cart)
+            db.session.commit()
+
+        # 3. Gộp đồ từ Session vào DB
+        for key, item in guest_cart.get("items", {}).items():
+            existing_item = CartItem.query.filter_by(
+                cart_id=user_cart.id, 
+                variant_id=item["variant_id"]
+            ).first()
+            
+            if existing_item:
+                existing_item.quantity += item["quantity"]
+            else:
+                new_item = CartItem(
+                    cart_id=user_cart.id,
+                    product_id=item["product_id"],
+                    variant_id=item["variant_id"],
+                    quantity=item["quantity"]
+                )
+                db.session.add(new_item)
+        
+        db.session.commit()
+        # Xóa session khách sau khi đã gộp xong
+        session.pop(CartService.SESSION_KEY, None)

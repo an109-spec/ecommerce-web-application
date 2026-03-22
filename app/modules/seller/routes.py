@@ -730,12 +730,26 @@ def orders_page():
 def chat_page():
 
     user = get_current_user()
+    from app.modules.chat.service import ChatService
 
-    rooms = SellerCenterService.get_chat_overview(user.id)
+    room_query = request.args.get("room", type=int)
+    rooms = ChatService.list_rooms_for_user(user.id, seller_only=True)
+    active = None
+    if room_query:
+        active = next((item for item in rooms if item["room"].id == room_query), None)
+    if not active and rooms:
+        active = rooms[0]
+
+    messages = []
+    if active:
+        messages = ChatService.get_chat_history(active["room"].id, limit=200)
 
     return render_template(
         "seller/chat.html",
         rooms=rooms,
+        active=active,
+        messages=messages,
+        current_user=user,
     )
 ################
 #

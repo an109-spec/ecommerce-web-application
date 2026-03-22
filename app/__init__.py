@@ -40,6 +40,7 @@ def create_app():
         raise RuntimeError(f"Invalid environment: {env}")
 
     app.config.from_object(config_class)
+    app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:123456@localhost:5432/shopee_mini"
 
     # Init extensions
     init_extensions(app)
@@ -62,11 +63,13 @@ def create_app():
     def inject_globals():
         from flask import session
         from app.models import Notification, User, Shop
+        from app.modules.chat.service import ChatService
 
         current_user = None
         current_shop = None
         header_notifications = []
         unread_notifications = 0
+        unread_chat_messages = 0
 
         user_id = session.get("user_id")
 
@@ -83,6 +86,8 @@ def create_app():
                     .all()
                 )
                 unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+                unread_chat_messages = ChatService.get_unread_count(current_user.id)
+
 
 
         return {
@@ -91,6 +96,7 @@ def create_app():
             "current_shop": current_shop,
             "header_notifications": header_notifications,
             "unread_notifications": unread_notifications,
+            "unread_chat_messages": unread_chat_messages,
         }
 
     if app.config["DEBUG"]:
@@ -102,24 +108,28 @@ def create_app():
 
 def ensure_default_admin(app):
     from app.models import User
-
+    from sqlalchemy import text 
     with app.app_context():
         inspector = inspect(db.engine)
         if not inspector.has_table("users"):
             return
-
-        admin = User.query.filter_by(username="admin").first()
-        if admin:
+        exists = db.session.execute(text("SELECT 1 FROM users WHERE username = 'admin'")).first()
+        
+        if exists:
             return
-
-        default_admin = User(
-            username="admin",
-            email="admin@oneshop.local",
-            password_hash=generate_password_hash("admin123"),
-            role="admin",
-        )
-        db.session.add(default_admin)
-        db.session.commit()
+        try:
+            default_admin = User(
+                username="admin",
+                email="admin@oneshop.local",
+                password_hash=generate_password_hash("admin123"),
+                role="admin",
+                is_seller=False 
+            )
+            db.session.add(default_admin)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Lỗi khi tạo admin: {e}")
 
 def register_blueprints(app):
     app.register_blueprint(auth_bp)

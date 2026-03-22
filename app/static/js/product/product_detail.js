@@ -64,7 +64,7 @@ function renderOptionGroup(title, values, type) {
       .filter(Boolean)
       .map((src) => normalizeAssetUrl(src));
     const mainImage = images[0] || '/static/images/no-image.png';
-    const hasFlashSale = item.flash_price != null;
+    const hasFlashSale = item.flash_price != null && item.flash_price < item.original_price;
     const currentPrice = hasFlashSale ? item.flash_price : item.original_price;
     const discountPercent = calcDiscountPercent(item.original_price, item.flash_price, item.discount_percent);
     const shopLogo = normalizeAssetUrl(shop.logo);
@@ -132,6 +132,7 @@ ${item.vouchers && item.vouchers.length ? `
                 <button type="submit" class="btn btn--outline">Thêm vào giỏ hàng</button>
               </form>
               <button type="button" class="btn btn--primary" id="buy-now-btn">Mua ngay</button>
+              ${shop.owner_id ? `<a class="btn btn--outline" id="chat-shop-btn" href="/chat/shop/${shop.owner_id}">Chat với shop</a>` : ''}
             </div>
           </div>
         </div>
@@ -217,29 +218,49 @@ detailEl.querySelectorAll('.thumb-img').forEach(img => {
 });
 
 
-// 🔥 CORE LOGIC
 function updateVariant() {
   if (!item.variants) return;
 
   const match = item.variants.find(v => {
     return (!selected.size || v.size == selected.size) &&
-          (!selected.color || (v.color || '').toLowerCase() === selected.color.toLowerCase());
+           (!selected.color || (v.color || '').toLowerCase() === selected.color.toLowerCase());
   });
 
   if (!match) return;
 
-  // ✅ ĐỔI GIÁ
-  if (priceEl && match.price) {
-    priceEl.textContent = fmtCurrency(match.price);
+  // --- LOGIC SỬA GIÁ Ở ĐÂY ---
+  const priceOriginalEl = detailEl.querySelector('.price-original');
+  const pricePercentEl = detailEl.querySelector('.price-percent');
+
+  // Nếu có Flash Sale chung, ta tính giá dựa trên phần trăm giảm giá của sản phẩm đó
+  // Hoặc nếu bạn muốn giá Flash Sale là cố định cho mọi biến thể thì giữ nguyên 15k
+  // Nhưng thông thường, mỗi màu sẽ giảm theo tỉ lệ. 
+  
+  let finalPrice = match.price; // Lấy giá gốc của biến thể (ví dụ 25k)
+  
+  if (item.flash_price && item.flash_price < item.original_price) {
+      // Tính tỉ lệ giảm giá từ sản phẩm chính
+      const discountRatio = item.flash_price / item.original_price;
+      // Áp dụng tỉ lệ đó cho biến thể đang chọn
+      finalPrice = Math.round(match.price * discountRatio);
   }
 
-  // ✅ luôn tìm riêng theo color để đổi ảnh
+  // Cập nhật giá chính (màu đỏ)
+  if (priceEl) {
+    priceEl.textContent = fmtCurrency(finalPrice);
+  }
+
+  // Cập nhật giá gốc (gạch ngang) phía sau nếu có
+  if (priceOriginalEl) {
+    priceOriginalEl.textContent = fmtCurrency(match.price);
+  }
+  // ---------------------------
+
+  // Logic đổi ảnh theo màu (Giữ nguyên)
   if (selected.color && item.variants && mainImageEl) {
     const colorVariant = item.variants.find(v =>
-  (v.color || '').toLowerCase() === selected.color.toLowerCase()
-  && v.image
-);
-
+      (v.color || '').toLowerCase() === selected.color.toLowerCase() && v.image
+    );
     if (colorVariant && colorVariant.image) {
       mainImageEl.src = normalizeAssetUrl(colorVariant.image);
     }
@@ -271,8 +292,9 @@ function updateVariant() {
     quantityInput?.addEventListener('change', syncQty);
     syncQty();
 
-        const addToCartForm = detailEl.querySelector('#add-to-cart-form');
+    const addToCartForm = detailEl.querySelector('#add-to-cart-form');
     const buyNowBtn = detailEl.querySelector('#buy-now-btn');
+    const chatShopBtn = detailEl.querySelector('#chat-shop-btn');
 
     const selectedVariant = () => {
       if (!item.variants || !item.variants.length) return null;
@@ -355,8 +377,51 @@ function updateVariant() {
       await submitCartAction(false);
     });
 
-    buyNowBtn?.addEventListener('click', async () => {
-      await submitCartAction(true);
+    // Cập nhật lại logic cho nút Buy Now trong product_detail.js
+  buyNowBtn?.addEventListener('click', async () => {
+      const requiresSize = Array.isArray(item.size_options) && item.size_options.length > 0;
+      const requiresColor = Array.isArray(item.color_options) && item.color_options.length > 0;
+      
+      if ((requiresSize && !selected.size) || (requiresColor && !selected.color)) {
+          alert('Vui lòng chọn đầy đủ phân loại sản phẩm');
+          return;
+      }
+
+      const variant = selectedVariant();
+      if (!variant) {
+          alert('Vui lòng chọn phân loại sản phẩm');
+          return;
+      }
+
+      // BỎ QUA fetch('/cart/add'), gọi thẳng checkout
+      const checkoutResponse = await fetch('/checkout/init', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+          },
+          body: JSON.stringify({
+              source: 'buy_now', // Server sẽ hiểu đây là mua ngay, không lấy từ giỏ hàng
+              items: [{
+                  product_id: item.id,
+                  variant_id: variant.id,
+                  quantity: Number(hiddenQty?.value || 1),
+              }],
+          }),
+      });
+
+      const checkoutPayload = await checkoutResponse.json();
+      if (!checkoutResponse.ok) {
+          alert(checkoutPayload.error || 'Không thể khởi tạo checkout');
+          return;
+      }
+      window.location.href = '/checkout';
+  });
+
+    chatShopBtn?.addEventListener('click', (event) => {
+      if (!item.shop?.owner_id) {
+        event.preventDefault();
+      }
     });
 
 

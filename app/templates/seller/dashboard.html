@@ -1,30 +1,198 @@
 {% extends "seller/layout_seller.html" %}
 
 {% block title %}Seller Dashboard{% endblock %}
+
 {% block seller_content %}
-<h2>Dashboard</h2>
+<style>
+    /* Tổng thể container */
+    .dashboard-container {
+        padding: 10px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-<div class="dashboard-cards">
-     <div class="dashboard-card"><h4>Chờ xác nhận</h4><p>{{ todo.pending }}</p></div>
-  <div class="dashboard-card"><h4>Đang chuẩn bị</h4><p>{{ todo.preparing }}</p></div>
-  <div class="dashboard-card"><h4>Đang giao</h4><p>{{ todo.shipping }}</p></div>
-  <div class="dashboard-card"><h4>Hủy</h4><p>{{ todo.cancelled }}</p></div>
-</div>
+    /* Tiêu đề các mục */
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 25px 0 15px;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-<div class="dashboard-cards">
-  <div class="dashboard-card"><h4>Doanh thu hôm nay</h4><p>{{ today_revenue }}đ</p></div>
-  <div class="dashboard-card"><h4>Số đơn</h4><p>{{ total_orders }}</p></div>
-  <div class="dashboard-card"><h4>Tổng sản phẩm</h4><p>{{ total_products }}</p></div>
+    /* Grid cho các thẻ chỉ số */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #edf2f7;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card h4 {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .stat-card p {
+        margin: 10px 0 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a202c;
+    }
+
+    /* Màu sắc riêng cho trạng thái đơn hàng */
+    .card-pending { border-left: 5px solid #ecc94b; }   /* Vàng */
+    .card-preparing { border-left: 5px solid #4299e1; } /* Xanh biển */
+    .card-shipping { border-left: 5px solid #48bb78; }  /* Xanh lá */
+    .card-cancelled { border-left: 5px solid #f56565; } /* Đỏ */
+
+    /* Thẻ tài chính */
+    .card-revenue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .card-revenue h4, .card-revenue p { color: #fff; }
+
+    /* Bảng dữ liệu */
+    .table-container {
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #edf2f7;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    th {
+        background: #f8fafc;
+        padding: 15px 20px;
+        color: #4a5568;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border-bottom: 2px solid #edf2f7;
+    }
+
+    td {
+        padding: 15px 20px;
+        border-bottom: 1px solid #edf2f7;
+        color: #2d3748;
+        font-size: 0.95rem;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: #f7fafc; }
+
+    /* Badge trạng thái trong bảng */
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+</style>
+
+<div class="dashboard-container">
+    <h2 style="margin-bottom: 30px; color: #1a202c;">Tổng quan cửa hàng</h2>
+
+    <!-- Hàng 1: Việc cần làm -->
+    <div class="section-title">🔔 Trạng thái vận hành</div>
+    <div class="dashboard-grid">
+        <div class="stat-card card-pending">
+            <h4>Chờ xác nhận</h4>
+            <p>{{ todo.pending }}</p>
+        </div>
+        <div class="stat-card card-preparing">
+            <h4>Đang chuẩn bị</h4>
+            <p>{{ todo.preparing }}</p>
+        </div>
+        <div class="stat-card card-shipping">
+            <h4>Đang giao</h4>
+            <p>{{ todo.shipping }}</p>
+        </div>
+        <div class="stat-card card-cancelled">
+            <h4>Hủy</h4>
+            <p>{{ todo.cancelled }}</p>
+        </div>
+    </div>
+
+    <!-- Hàng 2: Chỉ số kinh doanh -->
+    <div class="section-title">📈 Hiệu quả kinh doanh</div>
+    <div class="dashboard-grid">
+        <div class="stat-card card-revenue">
+            <h4>Doanh thu hôm nay</h4>
+            <p>
+                {% if today_revenue is number %}
+                    {{ "{:,.0f}".format(today_revenue) }}đ
+                {% elif today_revenue %}
+                    {{ today_revenue }}đ
+                {% else %}
+                    0đ
+                {% endif %}
+            </p>
+        </div>
+        <div class="stat-card">
+            <h4>Số đơn hàng</h4>
+            <p>{{ total_orders }}</p>
+        </div>
+        <div class="stat-card">
+            <h4>Tổng sản phẩm</h4>
+            <p>{{ total_products }}</p>
+        </div>
+    </div>
+
+    <!-- Hàng 3: Bảng đơn hàng -->
+    <div class="section-title">📦 Đơn hàng gần đây</div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã đơn hàng</th>
+                    <th>Tổng thanh toán</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                    <td style="font-weight: 600; color: #4c51bf;">#{{ order.id }}</td>
+                    <td>{{ "{:,.0f}".format(order.total_price) if order.total_price is number else order.total_price }}đ</td>
+                    <td>
+                        <span class="status-badge" 
+                              style="background: #e2e8f0; color: #4a5568;">
+                            {{ order.status.value }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align: center; color: #a0aec0; padding: 30px;">Chưa có đơn hàng nào gần đây.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-<h3>Đơn hàng gần đây</h3>
-<table>
-  <tr><th>OrderID</th><th>Tổng tiền</th><th>Trạng thái</th></tr>
-  {% for order in recent_orders %}
-  <tr>
-    <td>#{{ order.id }}</td>
-    <td>{{ order.total_price }}</td>
-    <td>{{ order.status.value }}</td>
-  </tr>
-  {% endfor %}
-</table>
 {% endblock %}
