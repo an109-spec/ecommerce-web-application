@@ -35,8 +35,8 @@ class SellerCenterService:
         shipping = sum(1 for o in orders if o.status == OrderStatus.SHIPPING)
         cancelled = sum(1 for o in orders if o.status == OrderStatus.CANCELLED)
 
-        today = datetime.now(timezone.utc)
-        today_revenue = sum(Decimal(o.total_price) for o in orders if o.created_at.date() == today)
+        today = datetime.now(timezone.utc).date()
+        today_revenue = sum(Decimal(o.total_price) for o in orders if o.created_at.date() == today and o.status != OrderStatus.CANCELLED)
 
         return {
             "todo": {
