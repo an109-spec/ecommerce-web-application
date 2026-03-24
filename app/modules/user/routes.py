@@ -22,7 +22,14 @@ def user_center_page():
         return redirect(url_for("auth.login", next=request.url))
     return render_template("user/center.html")
 
-
+@user_bp.route("/view/<int:view_user_id>", methods=["GET"])
+def public_user_page(view_user_id: int):
+    try:
+        data = UserService.get_public_profile(view_user_id)
+        return render_template("user/public_profile.html", profile=data)
+    except AppException as e:
+        return render_template("user/public_profile.html", error=str(e), profile=None), e.status_code
+    
 @user_bp.route("/profile", methods=["GET"])
 def profile():
     try:
@@ -118,6 +125,16 @@ def purchase_history():
         user_id = _resolve_user_id()
         history = UserService.purchase_history(user_id)
         return jsonify({"orders": history}), 200
+    except AppException as e:
+        return jsonify({"error": str(e)}), e.status_code
+    
+
+@user_bp.route("/following-shops", methods=["GET"])
+def following_shops():
+    try:
+        user_id = _resolve_user_id()
+        items = UserService.list_following_shops(user_id)
+        return jsonify({"items": items}), 200
     except AppException as e:
         return jsonify({"error": str(e)}), e.status_code
     

@@ -67,6 +67,13 @@
     els.shopLogo.src = data.logo || '/static/images/no-image.png';
     els.shopRating.textContent = Number(data.rating || 0).toFixed(1);
     els.shopFollowers.textContent = data.followers_count || 0;
+    if (data.owner_id) {
+      els.shopFollowers.style.cursor = 'pointer';
+      els.shopFollowers.title = 'Xem trang người mua';
+      els.shopFollowers.onclick = () => {
+        window.location.href = `/user/view/${data.owner_id}`;
+      };
+    }
     els.shopProducts.textContent = data.total_products || 0;
     els.shopDescription.textContent = data.description || 'Shop chưa cập nhật mô tả.';
     updateFollowButton();

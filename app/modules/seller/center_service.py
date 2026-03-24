@@ -5,6 +5,9 @@ from decimal import Decimal
 from app.common.exceptions import ForbiddenError, NotFoundError, ValidationError
 from app.core.enums.order_status import OrderStatus
 
+from app.extensions import db
+from app.models import Product, Review
+
 from .repository import SellerRepository
 
 
@@ -37,7 +40,12 @@ class SellerCenterService:
 
         today = datetime.now(timezone.utc).date()
         today_revenue = sum(Decimal(o.total_price) for o in orders if o.created_at.date() == today and o.status != OrderStatus.CANCELLED)
-
+        total_reviews = (
+            db.session.query(Review.id)
+            .join(Product, Product.id == Review.product_id)
+            .filter(Product.shop_id == shop_id)
+            .count()
+        )
         return {
             "todo": {
                 "pending": pending,
@@ -48,6 +56,7 @@ class SellerCenterService:
             "today_revenue": float(today_revenue),
             "total_orders": len(orders),
             "total_products": len(products),
+            "total_reviews": total_reviews,
             "recent_orders": orders[:5],
         }
 

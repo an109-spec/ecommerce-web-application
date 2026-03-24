@@ -307,6 +307,37 @@ btnLoadOrders.onclick = async () => {
 
 }
 
+/* =========================
+FOLLOWING SHOPS
+========================= */
+
+function renderFollowingShops(items) {
+    const box = document.getElementById("following-shops-container")
+    if (!box) return
+
+    if (!items || !items.length) {
+        box.innerHTML = "<p>Bạn chưa theo dõi shop nào.</p>"
+        return
+    }
+
+    box.innerHTML = items.map((item) => `
+      <a class="address-card" href="${item.shop_url}" style="display:block;text-decoration:none;color:inherit;">
+        <div class="address-text">
+          <strong>${item.name || "Shop"}</strong><br>
+          Nhấn để mở trang shop
+        </div>
+      </a>
+    `).join("")
+}
+
+async function loadFollowingShops() {
+    try {
+        const data = await api("/user/following-shops")
+        renderFollowingShops(data.items || [])
+    } catch (e) {
+        renderFollowingShops([])
+    }
+}
 
 /* =========================
 ADDRESS
@@ -490,6 +521,7 @@ INIT
 document.addEventListener("DOMContentLoaded", () => {
 
     loadProfile()
+    loadFollowingShops()
     bindAddressEvents()
 
     /* THÊM ĐOẠN NÀY */

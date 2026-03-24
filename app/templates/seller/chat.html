@@ -37,11 +37,16 @@
           {% for message in messages %}
             <div class="message {% if message.sender_id == current_user.id %}self{% endif %}" data-msg-id="{{ message.id }}">
               <div class="bubble-wrapper">
-                <div class="bubble">{{ message.content or '[Hình ảnh]' }}</div>
-                
-                <!-- ĐOẠN CẦN THÊM/SỬA Ở ĐÂY -->
+                {% if message.image %}
+                  <div class="bubble">
+                    {% if message.content %}<div>{{ message.content }}</div>{% endif %}
+                    <img class="chat-image" src="{{ message.image }}" alt="Ảnh đính kèm">
+                  </div>
+                {% else %}
+                  <div class="bubble">{{ message.content or '[Hình ảnh]' }}</div>
+                {% endif %}
                 <div class="msg-status">
-                  <span class="time">{{ message.created_at.strftime('%H:%M') if message.created_at else '' }}</span>
+                  <span class="time">{{ message.created_at.strftime('%d/%m/%Y %H:%M') if message.created_at else '' }}</span>
                   {% if message.sender_id == current_user.id %}
                     <span class="status-icon {% if message.seen %}is-seen{% endif %}">
                       <i class="status-text">{% if message.seen %}Đã xem{% else %}Đã gửi{% endif %}</i>
@@ -54,6 +59,8 @@
         </div>
 
         <form id="chat-send-form" class="chat-input" data-room-id="{{ active.room.id }}">
+                    <label for="chat-image-input" class="chat-attach-btn" title="Đính kèm ảnh">📎</label>
+          <input id="chat-image-input" name="image" type="file" accept="image/*" hidden>
           <input id="message-input" name="content" placeholder="Nhập tin nhắn" autocomplete="off">
           <button type="submit" id="send-btn">Gửi</button>
         </form>

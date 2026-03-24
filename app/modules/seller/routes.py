@@ -270,6 +270,7 @@ def dashboard():
         today_revenue=data["today_revenue"],
         total_orders=data["total_orders"],
         total_products=data["total_products"],
+        total_reviews=data["total_reviews"],
         recent_orders=data["recent_orders"],
     )
 

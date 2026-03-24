@@ -14,7 +14,7 @@ from app.common.exceptions import (
     AppException,
 )
 from app.extensions import db
-from app.models import Order, OrderItem, Product, User, UserProfile
+from app.models import Order, OrderItem, Product, Shop, ShopFollow, User, UserProfile
 
 
 class UserService:
@@ -100,6 +100,38 @@ class UserService:
                 "birthday": profile.birthday.isoformat() if profile and profile.birthday else None,
             },
         }
+
+    @staticmethod
+    def get_public_profile(user_id: int) -> dict:
+        user = UserService._get_user(user_id)
+        profile = UserProfile.query.filter_by(user_id=user.id).first()
+        return {
+            "id": user.id,
+            "username": user.username,
+            "avatar": user.avatar,
+            "full_name": profile.full_name if profile and profile.full_name else "",
+        }
+
+    @staticmethod
+    def list_following_shops(user_id: int) -> list[dict]:
+        UserService._get_user(user_id)
+        follows = (
+            db.session.query(ShopFollow, Shop)
+            .join(Shop, Shop.id == ShopFollow.shop_id)
+            .filter(ShopFollow.user_id == user_id)
+            .order_by(ShopFollow.created_at.desc())
+            .all()
+        )
+        return [
+            {
+                "shop_id": shop.id,
+                "name": shop.name,
+                "logo": shop.logo,
+                "shop_url": f"/shops/{shop.id}",
+            }
+            for _, shop in follows
+        ]
+
     @staticmethod
     def _load_addresses(raw_value: str | None) -> list[dict]:
         if not raw_value:

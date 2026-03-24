@@ -1,0 +1,29 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Trang người mua{% endblock %}
+
+{% block content %}
+<section class="user-center">
+  {% if error %}
+    <p style="color: red;">{{ error }}</p>
+  {% elif profile %}
+    <h1 class="user-title">Trang người mua</h1>
+    <section class="card">
+      <h2 class="card-title">{{ profile.full_name or profile.username }}</h2>
+      <div class="profile-top">
+        <img class="avatar" src="{{ profile.avatar or 'https://via.placeholder.com/96' }}" alt="avatar">
+        <div class="profile-info">
+          <div class="row">
+            <span>Username</span>
+            <b>{{ profile.username }}</b>
+          </div>
+          <div class="row">
+            <span>ID</span>
+            <b>#{{ profile.id }}</b>
+          </div>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

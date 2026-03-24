@@ -112,6 +112,7 @@ class PublicShopService:
 
         return {
             "id": shop.id,
+            "owner_id": shop.owner_id,
             "name": shop.name,
             "logo": PublicShopService._normalize_asset_url(shop.logo),
             "rating": round(float(avg_rating or shop.rating or 0), 1),

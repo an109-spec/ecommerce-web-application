@@ -187,6 +187,20 @@
 .chat-input button:active {
   transform: scale(0.95); /* Hiệu ứng lún nút khi click */
 }
+
+
+.chat-attach-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
 /* Cụm chứa thời gian và trạng thái */
 .msg-status {
   display: flex;
@@ -223,4 +237,14 @@
 }
 .message:not(.self) .bubble {
   border-bottom-left-radius: 4px !important;
+}
+
+.chat-image {
+  display: block;
+  max-width: 220px;
+  max-height: 280px;
+  width: auto;
+  height: auto;
+  margin-top: 6px;
+  border-radius: 10px;
 }

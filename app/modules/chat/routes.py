@@ -1,9 +1,13 @@
-from flask import jsonify, redirect, render_template, request, session, url_for
+from pathlib import Path
+from uuid import uuid4
 
+from flask import jsonify, redirect, render_template, request, session, url_for
+from werkzeug.utils import secure_filename
 from app.models import User
 
 from . import chat_bp
 from .service import ChatService
+ALLOWED_CHAT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 def _current_user():
     user_id = session.get("user_id")
@@ -76,7 +80,7 @@ def history(room_id):
             "content": message.content,
             "image": message.image,
             "room_id": message.room_id,
-            "created_at": str(message.created_at),
+            "created_at": message.created_at.isoformat() if message.created_at else None,
         }
         for message in messages
     ]
@@ -126,9 +130,32 @@ def send_message():
             "content": message.content,
             "image": message.image,
             "seen": message.seen,
-            "created_at": str(message.created_at),
+            "created_at": message.created_at.isoformat() if message.created_at else None,
         }
     )
+@chat_bp.route("/upload-image", methods=["POST"])
+def upload_image():
+    user = _current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    file = request.files.get("image")
+    if file is None or not file.filename:
+        return jsonify({"error": "image is required"}), 422
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_CHAT_IMAGE_EXTENSIONS:
+        return jsonify({"error": "Định dạng ảnh không hỗ trợ"}), 422
+
+    safe_name = secure_filename(file.filename)
+    filename = f"{uuid4().hex}-{safe_name}"
+    upload_dir = Path("app/static/uploads/chat")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file.save(upload_dir / filename)
+
+    image_url = url_for("static", filename=f"uploads/chat/{filename}")
+    return jsonify({"image": image_url}), 200
+
 
 
 @chat_bp.route("/seen/<int:room_id>", methods=["POST"])
