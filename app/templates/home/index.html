@@ -100,15 +100,18 @@
 </section>
 
 <section class="home-section category-grid">
-  <h2 class="glow-title">🏷️ DANH MỤC NỔI BẬT</h2>
-  <div class="grid">
+  <div class="category-header-row">
+    <h2 class="glow-title">🏷️ DANH MỤC NỔI BẬT</h2>
+  </div>
+  <div class="category-shopee-list">
     {% for category in categories %}
-      <!-- Thêm data-name="{{ category.name }}" -->
       <a href="/shop/search?category_id={{ category.id }}" 
-         class="category-card--colorful" 
+         class="category-shopee-item" 
          data-name="{{ category.name }}">
-        <span class="category-icon"></span> <!-- Để trống để CSS tự chèn icon -->
-        <p class="category-name">{{ category.name }}</p>
+        <div class="category-shopee-icon-wrapper">
+            <div class="category-shopee-icon"></div>
+        </div>
+        <p class="category-shopee-name">{{ category.name }}</p>
       </a>
     {% endfor %}
   </div>

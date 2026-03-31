@@ -455,3 +455,88 @@ button {
 .toast--info {
     background: #2563eb;
 }
+
+/* --- UI DANH MỤC PHONG CÁCH SHOPEE --- */
+.category-section {
+    background: #fff;
+    margin-top: 20px;
+    border-radius: 2px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.category-header {
+    padding: 15px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #888;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(0,0,0,.05);
+}
+
+.category-list {
+    display: grid;
+    /* Shopee thường dùng 10 cột trên desktop */
+    grid-template-columns: repeat(10, 1fr); 
+    background: #fff;
+}
+
+.category-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    text-decoration: none;
+    color: #333;
+    border-right: 1px solid rgba(0,0,0,.05);
+    border-bottom: 1px solid rgba(0,0,0,.05);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    height: 150px; /* Chiều cao cố định cho đều */
+    text-align: center;
+}
+
+.category-item:hover {
+    box-shadow: 0 0 10px rgba(0,0,0,.1);
+    z-index: 1;
+    transform: translateY(-1px);
+    color: #ee4d2d;
+}
+
+.category-item__img {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-item__img img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.category-item__name {
+    font-size: 12px;
+    line-height: 14px;
+    height: 28px; /* Tối đa 2 dòng */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    word-break: break-word;
+}
+
+/* Responsive cho mobile và tablet */
+@media (max-width: 1200px) {
+    .category-list { grid-template-columns: repeat(6, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .category-list { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .category-list { grid-template-columns: repeat(3, 1fr); }
+}
