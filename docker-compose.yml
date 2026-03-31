@@ -4,7 +4,7 @@ services:
     container_name: shopee-mini-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: 123456
       POSTGRES_DB: shopee_mini
     ports:
       - "5432:5432"

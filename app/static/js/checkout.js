@@ -6,6 +6,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let checkout = null;
 
+  const notify = (message, type = 'info') => {
+    if (typeof window.showToast === 'function') {
+      window.showToast(message, type);
+      return;
+    }
+    alert(message);
+  };
+
+
   const formatMoney = (value) => `₫${Number(value || 0).toLocaleString('vi-VN')}`;
   const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -216,63 +225,62 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function bindEvents() {
-root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
-  try {
-    const selectedShopId = checkout?.shops?.[0]?.shop_id;
-    const selectedAddressId = checkout?.address?.id;
-    const selectedPaymentMethod = root.querySelector('input[name="payment_method"]:checked')?.value || checkout?.payment_method;
+    root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
+      try {
+        const selectedShopId = checkout?.shops?.[0]?.shop_id;
+        const selectedAddressId = checkout?.address?.id;
+        const selectedPaymentMethod = root.querySelector('input[name="payment_method"]:checked')?.value || checkout?.payment_method;
 
-    if (!selectedShopId) throw new Error('Chưa xác định shop_id');
-    if (!selectedAddressId) throw new Error('Chưa có địa chỉ giao hàng');
-    if (!selectedPaymentMethod) throw new Error('Chưa chọn phương thức thanh toán');
+        if (!selectedShopId) throw new Error('Chưa xác định shop_id');
+        if (!selectedAddressId) throw new Error('Chưa có địa chỉ giao hàng');
+        if (!selectedPaymentMethod) throw new Error('Chưa chọn phương thức thanh toán');
 
-    const payload = {
-      shop_id: Number(selectedShopId),
-      address_id: selectedAddressId,
-      payment_method: selectedPaymentMethod,
-    };
+        const payload = {
+          shop_id: Number(selectedShopId),
+          address_id: selectedAddressId,
+          payment_method: selectedPaymentMethod,
+        };
 
-    const result = await fetchJson('/checkout/confirm', {
-      method: 'POST',
-      body: JSON.stringify(payload),
+        const result = await fetchJson('/checkout/confirm', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        window.location.href = result.redirect_url;
+      } catch (error) {
+        notify(error.message || 'Không thể đặt hàng, vui lòng thử lại.', 'error');
+      }
     });
 
-    window.location.href = result.redirect_url;
-  } catch (error) {
-    alert(error.message);
-  }
-});
-
     root.querySelectorAll('[data-apply-voucher-code]').forEach((button) => {
-        button.addEventListener('click', async () => {
-            const shopId = Number(button.dataset.applyVoucherCode);
-            const input = root.querySelector(`[data-voucher-code="${shopId}"]`);
-            const code = (input?.value || '').trim();
+      button.addEventListener('click', async () => {
+        const shopId = Number(button.dataset.applyVoucherCode);
+        const input = root.querySelector(`[data-voucher-code="${shopId}"]`);
+        const code = (input?.value || '').trim();
 
-            if (!shopId) {
-                alert("Không tìm thấy ID cửa hàng");
-                return;
-            }
+        if (!shopId) {
+          notify('Không tìm thấy cửa hàng áp dụng voucher.', 'error');
+          return;
+        }
 
-            // CHẶN GỬI NẾU TRỐNG:
-            if (!code) {
-                alert("Vui lòng nhập mã voucher trước khi áp dụng");
-                return;
-            }
+        if (!code) {
+          notify('Vui lòng nhập mã voucher trước khi áp dụng.', 'warning');
+          return;
+        }
 
-            try {
-                checkout = await fetchJson('/checkout/apply-voucher', {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        shop_id: shopId, 
-                        voucher_code: code 
-                    }),
-                });
-                render(checkout); // Cập nhật lại giao diện sau khi áp dụng thành công
-            } catch (error) {
-                alert(error.message); // Hiển thị lỗi từ Backend (ví dụ: Voucher hết hạn, không đủ điều kiện...)
-            }
-        });
+        try {
+          checkout = await fetchJson('/checkout/apply-voucher', {
+            method: 'POST',
+            body: JSON.stringify({
+              shop_id: shopId,
+              voucher_code: code,
+            }),
+          });
+          render(checkout);
+          notify('Áp dụng voucher thành công.', 'success');
+        } catch (_error) {
+          notify('Không thể áp dụng voucher. Vui lòng kiểm tra lại mã.', 'error');
+        }
+      });
     });
 
 
@@ -285,8 +293,31 @@ root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
             body: JSON.stringify({ shop_id: Number(select.dataset.voucherSelect), voucher_id: Number(select.value) }),
           });
           render(checkout);
-        } catch (error) {
-          alert(error.message);
+          notify('Áp dụng voucher thành công.', 'success');
+        } catch (_error) {
+          notify('Không thể áp dụng voucher đã chọn.', 'error');
+        }
+      });
+    });
+
+    root.querySelectorAll('[data-shipping-method]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const shopId = Number(button.dataset.shippingMethod);
+        const shippingCode = button.dataset.shippingCode;
+        if (!shopId || !shippingCode) {
+          notify('Không thể xác định phương thức vận chuyển.', 'error');
+          return;
+        }
+
+        try {
+          checkout = await fetchJson('/checkout/shipping-method', {
+            method: 'POST',
+            body: JSON.stringify({ shop_id: shopId, shipping_method: shippingCode }),
+          });
+          render(checkout);
+          notify('Đã cập nhật phương thức vận chuyển.', 'success');
+        } catch (_error) {
+          notify('Không thể cập nhật phương thức vận chuyển.', 'error');
         }
       });
     });
@@ -299,8 +330,8 @@ root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
             body: JSON.stringify({ payment_method: radio.value }),
           });
           render(checkout);
-        } catch (error) {
-          alert(error.message);
+        } catch (_error) {
+          notify('Không thể cập nhật phương thức thanh toán.', 'error');
         }
       });
     });
@@ -323,8 +354,9 @@ root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
           });
           modal.hidden = true;
           await refreshCheckout();
-        } catch (error) {
-          alert(error.message);
+          notify('Đã cập nhật địa chỉ nhận hàng.', 'success');
+        } catch (_error) {
+          notify('Không thể cập nhật địa chỉ nhận hàng.', 'error');
         }
       });
     });
@@ -337,8 +369,9 @@ root.querySelector('#place-order-btn')?.addEventListener('click', async () => {
       try {
         await fetchJson('/user/address', { method: 'PUT', body: JSON.stringify(payload) });
         await refreshCheckout();
-      } catch (error) {
-        alert(error.message);
+        notify('Đã lưu địa chỉ mới.', 'success');
+      } catch (_error) {
+        notify('Không thể lưu địa chỉ. Vui lòng kiểm tra lại thông tin.', 'error');
       }
     });
   }

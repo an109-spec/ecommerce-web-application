@@ -111,18 +111,18 @@
 <main class="app-main">
  <div class="container">
       {% if current_user and current_user.is_banned %}
-      <div class="alert alert--danger">Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin.</div>
+      <div data-flash-message="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin." data-flash-category="danger" hidden></div>
     {% endif %}
     {% if current_shop and current_shop.status == 'PENDING' %}
-      <div class="alert alert--warning">Shop đang chờ duyệt.</div>
+      <div data-flash-message="Shop đang chờ duyệt." data-flash-category="warning" hidden></div>
     {% elif current_shop and current_shop.status == 'BANNED' %}
-      <div class="alert alert--danger">Shop của bạn đã bị khóa. Liên hệ admin để mở khóa.</div>
+      <div data-flash-message="Shop của bạn đã bị khóa. Liên hệ admin để mở khóa." data-flash-category="danger" hidden></div>
     {% endif %}
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert--{{ category }}">{{ message }}</div>
+          <div data-flash-message="{{ message }}" data-flash-category="{{ category }}" hidden></div>
         {% endfor %}
       {% endif %}
     {% endwith %}

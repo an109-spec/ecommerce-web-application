@@ -1,13 +1,34 @@
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Shopee Mini UI Loaded');
 
-  const alerts = document.querySelectorAll('.alert');
-  alerts.forEach((alert) => {
-    setTimeout(() => {
-      alert.style.opacity = '0';
-      alert.style.transition = '0.5s';
-      setTimeout(() => alert.remove(), 500);
+  const toastRoot = document.createElement('div');
+  toastRoot.className = 'toast-container';
+  document.body.appendChild(toastRoot);
+
+  const showToast = (message, type = 'info') => {
+    if (!message) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast--${type}`;
+    toast.textContent = message;
+    toastRoot.appendChild(toast);
+
+    requestAnimationFrame(() => {
+      toast.classList.add('is-visible');
+    });
+
+    window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+      window.setTimeout(() => toast.remove(), 220);
     }, 3000);
+    };
+
+  window.showToast = showToast;
+
+  document.querySelectorAll('[data-flash-message]').forEach((item) => {
+    const message = item.dataset.flashMessage;
+    const type = item.dataset.flashCategory || 'info';
+    showToast(message, type);
+    item.remove();
   });
 
   const input = document.getElementById('searchInput');
