@@ -103,17 +103,61 @@
   <div class="category-header-row">
     <h2 class="glow-title">🏷️ DANH MỤC NỔI BẬT</h2>
   </div>
-  <div class="category-shopee-list">
+  {% set category_icon_map = {
+    'Điện thoại': '📱',
+    'Laptop': '💻',
+    'Máy tính': '🖥️',
+    'Bàn phím': '⌨️',
+    'Chuột': '🖱️',
+    'Tai nghe': '🎧',
+    'Loa': '🔊',
+    'Đồng hồ': '⌚',
+    'Thời trang': '👕',
+    'Giày': '👟',
+    'Túi': '👜',
+    'Mỹ phẩm': '💄',
+    'Sức khỏe': '🧴',
+    'Nước hoa': '🌸',
+    'Sách': '📚',
+    'Văn phòng': '📝',
+    'Nhà': '🏠',
+    'Bếp': '🍳',
+    'Gia dụng': '🧺',
+    'Tủ lạnh': '🧊',
+    'Máy giặt': '🧼',
+    'Lò vi sóng': '🍲',
+    'Máy hút bụi': '🧹',
+    'Thể thao': '🏃',
+    'Yoga': '🧘',
+    'Xe': '🚗',
+    'Ô tô': '🚙',
+    'Điện tử': '📺',
+    'Phụ kiện': '🔌',
+    'Đồ chơi': '🧸',
+    'Mô hình': '🧩',
+    'Balo': '🎒',
+    'Máy ảnh': '📷',
+    'Thú cưng': '🐶'
+  } %}
+  <div class="category-shopee-track">
+    <button type="button" class="category-nav category-prev" aria-label="Cuộn danh mục sang trái">&lt;</button>
+<div class="category-shopee-list">
     {% for category in categories %}
-      <a href="/shop/search?category_id={{ category.id }}" 
-         class="category-shopee-item" 
-         data-name="{{ category.name }}">
+      {% set icon = '📦' %}
+      {% for key, value in category_icon_map.items() %}
+        {% if key in category.name %}
+          {% set icon = value %}
+        {% endif %}
+      {% endfor %}
+      <a href="/shop/search?category_id={{ category.id }}" class="category-shopee-item">
         <div class="category-shopee-icon-wrapper">
-            <div class="category-shopee-icon"></div>
+            <div class="category-shopee-icon">{{ icon }}</div>
         </div>
         <p class="category-shopee-name">{{ category.name }}</p>
       </a>
     {% endfor %}
+</div>
+    <button type="button" class="category-nav category-next" aria-label="Cuộn danh mục sang phải">&gt;</button>
   </div>
 </section>
 

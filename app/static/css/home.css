@@ -271,38 +271,80 @@
 .category-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; text-align: center; text-decoration: none; color: #333; }
 .category-shopee-list {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
+    /* Chia làm 2 hàng bằng nhau */
+    grid-template-rows: repeat(2, 150px); 
+    /* Buộc các item mới xếp theo cột (để tạo hàng ngang) */
+    grid-auto-flow: column;
+    /* Mỗi cột rộng 120px */
+    grid-auto-columns: 120px;
+    
+    overflow-x: auto;
+    scroll-behavior: smooth;
     background: #fff;
+    border-top: 1px solid rgba(0,0,0,.05);
+    border-left: 1px solid rgba(0,0,0,.05);
+}
+.category-shopee-list::-webkit-scrollbar {
+    display: none;
+}
+.category-shopee-list::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 999px;
+}
+.category-shopee-track {
+    position: relative;
+    background: #fff;
+    padding: 10px 0;
+}
+.category-nav {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 50%;
+    background: #fff;
+    color: #666;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+.category-nav:hover {
+    color: #ee4d2d;
+    border-color: #ee4d2d;
 }
 .category-shopee-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 15px 5px;
+    padding: 10px 5px;
     text-decoration: none;
     color: #333;
     border-right: 1px solid rgba(0,0,0,.05);
     border-bottom: 1px solid rgba(0,0,0,.05);
-    transition: all 0.2s ease;
-    height: 120px;
-    text-align: center;
+    transition: background 0.2s;
+    height: 150px;
 }
 .category-shopee-item:hover {
-    box-shadow: 0 0 10px rgba(0,0,0,.15);
-    z-index: 2;
-    transform: translateY(-2px);
+    box-shadow: inset 0 0 10px rgba(0,0,0,.05);
     color: #ee4d2d;
 }
 
 .category-shopee-icon-wrapper {
-    width: 45px;
-    height: 45px;
+    width: 80px;
+    height: 80px;
+    background-color: #f6f6f6; /* Nền xám nhạt hình tròn */
+    border-radius: 50%;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 30px; /* Cỡ icon */
+    transition: transform 0.2s;
+}
+.category-shopee-item:hover .category-shopee-icon-wrapper {
+    transform: scale(1.05);
+}
+.category-shopee-icon {
+    font-size: 40px;
+    line-height: 1;
 }
 .category-card--colorful {
     display: flex;
@@ -434,7 +476,7 @@
   .category-grid .grid { grid-template-columns: repeat(4, 1fr); }
   .four-cols { grid-template-columns: repeat(3, 1fr); }
   .three-cols { grid-template-columns: repeat(3, 1fr); }
-  .category-shopee-list { grid-template-columns: repeat(5, 1fr); }
+  .category-nav { display: none; }
 }
 
 @media (max-width: 768px) {
@@ -444,7 +486,7 @@
   .three-cols { grid-template-columns: repeat(2, 1fr); }
   .home-search-header__inner { gap: 10px; align-items: stretch; flex-direction: column; }
   .search-form { margin: 0; }
-  .category-shopee-list { grid-template-columns: repeat(4, 1fr); }
+  .category-shopee-item { flex-basis: 100px; height: 110px; }
 }
 
 /* Flash Sale scroll */
@@ -1121,9 +1163,6 @@
 .category-card--colorful[data-name*="Ốp lưng"] .category-icon::before { content: "🛡️"; }
 .category-card--colorful[data-name*="Sạc"] .category-icon::before { content: "⚡"; }
 .category-card--colorful[data-name*="Samsung"] .category-icon::before { content: "🌌"; }
-.category-shopee-item[data-name*="Máy tính"] .category-shopee-icon::before { content: "💻"; }
-.category-shopee-item[data-name*="Sách"] .category-shopee-icon::before { content: "📚"; }
-.category-shopee-item[data-name*="Gia dụng"] .category-shopee-icon::before { content: "🏠"; }
 .category-card--colorful:hover[data-name*="Điện thoại"], 
 .category-card--colorful:hover[data-name*="iPhone"] { background: linear-gradient(135deg, #4158D0, #C850C0); }
 
@@ -1247,9 +1286,10 @@
     font-size: 13px;
     line-height: 16px;
     height: 32px;
+    margin: 0 4px;
+    text-align: center;
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2; /* Giới hạn 2 dòng */
-    padding: 0 5px;
+    -webkit-line-clamp: 2; /* Hiện tối đa 2 dòng chữ */
 }

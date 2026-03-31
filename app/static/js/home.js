@@ -1,4 +1,22 @@
 (function () {
+    const categoryContainer = document.querySelector('.category-shopee-list');
+    const categoryPrevBtn = document.querySelector('.category-prev');
+    const categoryNextBtn = document.querySelector('.category-next');
+
+    if (categoryContainer && categoryPrevBtn && categoryNextBtn) {
+        // Cuộn ngang khoảng 4 cột mỗi lần click (120px * 4 = 480px)
+        const scrollAmount = 480; 
+
+        categoryPrevBtn.addEventListener('click', () => {
+            categoryContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        });
+        categoryNextBtn.addEventListener('click', () => {
+            categoryContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        });
+    }
+})();
+
+(function () {
   const el = document.getElementById('flash-countdown');
   if (!el) return;
 
