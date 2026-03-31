@@ -16,14 +16,20 @@ class MailService:
 
         try:
             # ===== DEVELOPMENT =====
-            if current_app.config["ENV"] == "development":
+            if current_app.config["ENV"] == "development" or current_app.config.get("DEBUG"):
                 logger.info(f"[DEV EMAIL] To: {to_email} | OTP: {otp_code}")
                 return
-
+            sender_mail = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("MAIL_USERNAME")
+            if not sender_mail:
+                logger.error("MAIL_USERNAME hoặc MAIL_DEFAULT_SENDER chưa được cấu hình!")
+                raise RuntimeError("Cấu hình gửi mail chưa hoàn thiện")
             # ===== PRODUCTION =====
+# ===== PRODUCTION =====
             msg = Message(
                 subject="Mã OTP đặt lại mật khẩu",
                 recipients=[to_email],
+                # Sửa dòng này để lấy email của bạn làm mặc định nếu config bị trống
+                sender=current_app.config.get("MAIL_DEFAULT_SENDER") or "annduyy85@gmail.com"
             )
 
             msg.body = (
