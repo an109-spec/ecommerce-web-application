@@ -12,7 +12,8 @@ if __name__ == "__main__":
     socketio.run(
         app,
         host="0.0.0.0",
-        port=port_env
+        port=port_env,
+        allow_unsafe_werkzeug=True
     )
 
 

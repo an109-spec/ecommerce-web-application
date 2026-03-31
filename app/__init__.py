@@ -40,7 +40,7 @@ def create_app():
         raise RuntimeError(f"Invalid environment: {env}")
 
     app.config.from_object(config_class)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:123456@localhost:5432/shopee_mini"
+    #app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:123456@localhost:5432/shopee_mini"
 
     # Init extensions
     init_extensions(app)
