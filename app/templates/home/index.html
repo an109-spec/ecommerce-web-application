@@ -143,15 +143,16 @@
     <button type="button" class="category-nav category-prev" aria-label="Cuộn danh mục sang trái">&lt;</button>
 <div class="category-shopee-list">
     {% for category in categories %}
-      {% set icon = '📦' %}
+      {% set icon_state = namespace(value='📦') %}
+      {% set category_name = (category.name or '')|lower %}
       {% for key, value in category_icon_map.items() %}
-        {% if key in category.name %}
-          {% set icon = value %}
+        {% if key|lower in category_name %}
+          {% set icon_state.value = value %}
         {% endif %}
       {% endfor %}
       <a href="/shop/search?category_id={{ category.id }}" class="category-shopee-item">
         <div class="category-shopee-icon-wrapper">
-            <div class="category-shopee-icon">{{ icon }}</div>
+            <div class="category-shopee-icon">{{ icon_state.value }}</div>
         </div>
         <p class="category-shopee-name">{{ category.name }}</p>
       </a>
